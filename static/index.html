@@ -7,7 +7,7 @@
 :root{--bg:#d9dbe0;--bar:#1f2430;--bar2:#2c3342;--fg:#eef0f5;--acc:#5b8cff;--ok:#43c78a}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-system,"Segoe UI",system-ui,sans-serif;color:#1b1e27}
-#bar{position:sticky;top:0;z-index:5;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 10px;background:var(--bar);color:var(--fg);box-shadow:0 2px 8px #0005}
+#bar{position:fixed;left:0;top:0;transform-origin:0 0;z-index:5;display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 10px;background:var(--bar);color:var(--fg);box-shadow:0 2px 8px #0005}
 #bar button{background:var(--bar2);color:var(--fg);border:1px solid #3a4256;border-radius:8px;padding:8px 12px;font:inherit;min-height:40px}
 #bar button.on{background:var(--acc);border-color:var(--acc);color:#fff}
 #bar button:focus-visible{outline:2px solid #fff}
@@ -20,28 +20,29 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 .sz{width:36px;padding:0!important;display:flex;align-items:center;justify-content:center}
 .sz i{display:block;border-radius:50%;background:#fff}
 #name{margin-left:auto;opacity:.75;max-width:30ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar select,#bar #tsize{background:var(--bar2);color:var(--fg);border:1px solid #3a4256;border-radius:8px;padding:8px;min-height:40px;font:inherit}
+#bar #tsize{width:64px}
 #browser{max-width:640px;margin:24px auto;background:#fff;border-radius:12px;padding:8px;box-shadow:0 1px 3px #0003}
 #browser h2{margin:10px 12px;font-size:16px}
 #browser a{display:block;padding:12px;border-radius:8px;color:inherit;text-decoration:none}
 #browser a:hover,#browser a:focus-visible{background:#eef2ff}
 #browser a.new{color:#1d4ed8;font-weight:600}
-#pages{display:flex;flex-direction:column;align-items:center;gap:14px;padding:14px 0 60px}
-.pg{position:relative;background:#fff;box-shadow:0 1px 4px #0004}
+#pages{display:flex;flex-direction:column;gap:14px;padding:14px 8px 90px}
+.pg{position:relative;background:#fff;box-shadow:0 1px 4px #0004;margin:0 auto;flex:none}
 .pg canvas{display:block}
-.pg .ink{position:absolute;left:0;top:0;touch-action:pan-y pinch-zoom}
+.pg .ink{position:absolute;left:0;top:0;touch-action:pan-x pan-y pinch-zoom}
 .tbx{position:absolute;z-index:2;outline:1px dashed var(--acc);background:rgba(255,255,255,.7)}
 .tbx textarea.tx{display:block;width:100%;margin:0;padding:0;border:0;outline:0;background:transparent;resize:none;overflow:hidden;line-height:1.2}
 .hd{position:absolute;background:var(--acc);color:#fff;touch-action:none;display:flex;align-items:center;justify-content:center;user-select:none}
 .hd.mv{left:-2px;top:-30px;width:30px;height:28px;border-radius:6px 6px 0 0;cursor:move;font-size:16px}
 .hd.lf,.hd.rt{top:50%;width:14px;height:34px;margin-top:-17px;border-radius:7px;cursor:ew-resize}
 .hd.lf{left:-8px}.hd.rt{right:-8px}
-#bar select,#bar #tsize{background:var(--bar2);color:var(--fg);border:1px solid #3a4256;border-radius:8px;padding:8px;min-height:40px;font:inherit}
-#bar #tsize{width:64px}
-#flip{position:fixed;right:14px;bottom:18px;z-index:6;width:64px;height:64px;border-radius:50%;border:0;background:var(--acc);color:#fff;font:600 13px/1.1 inherit;box-shadow:0 2px 8px #0006}
-#toast{position:fixed;left:50%;bottom:20px;z-index:30;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+#flip{position:fixed;left:0;top:0;transform-origin:0 0;z-index:6;width:64px;height:64px;border-radius:50%;border:0;background:var(--acc);color:#fff;font:600 13px/1.1 -apple-system,system-ui,sans-serif;box-shadow:0 2px 8px #0006}
+#flip[data-t="er"]{background:#e5484d}
+#toast{position:fixed;left:0;top:0;transform-origin:0 0;z-index:30;background:#111;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1}
-.modal{position:fixed;inset:0;background:#0008;z-index:20;display:flex;align-items:center;justify-content:center}
-.box{background:#fff;border-radius:12px;max-width:920px;width:94%;max-height:90vh;overflow:auto;padding:12px}
+.modal{position:fixed;left:0;top:0;transform-origin:0 0;background:#0008;z-index:20;display:flex;align-items:center;justify-content:center}
+.box{background:#fff;border-radius:12px;max-width:920px;width:94%;max-height:90%;overflow:auto;padding:12px}
 .box.small{max-width:420px}
 .mh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .mh b{margin-right:auto}
@@ -62,13 +63,11 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
   <button id="hl">Highlighter</button>
   <button id="tx">Text</button>
   <button id="er">Eraser</button>
-
   <span id="tbar" class="hide" style="display:contents">
-  <select id="tfont"><option value="helv">Helvetica</option><option value="tiro">Times</option><option value="cour">Courier</option></select>
-  <input id="tsize" type="number" min="4" max="300" title="Font size (pt)">
-  <button id="tb"><b>B</b></button><button id="ti"><i>I</i></button><button id="tu"><u>U</u></button>
-</span>
-
+    <select id="tfont"><option value="helv">Helvetica</option><option value="tiro">Times</option><option value="cour">Courier</option></select>
+    <input id="tsize" type="number" min="4" max="300" title="Font size (pt)">
+    <button id="tb"><b>B</b></button><button id="ti"><i>I</i></button><button id="tu"><u>U</u></button>
+  </span>
   <button class="sw on" data-c="#111111" style="background:#111" aria-label="Black"></button>
   <button class="sw" data-c="#d62828" style="background:#d62828" aria-label="Red"></button>
   <button class="sw" data-c="#1d4ed8" style="background:#1d4ed8" aria-label="Blue"></button>
@@ -92,7 +91,7 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 </div>
 <div id="browser"></div>
 <div id="pages"></div>
-<button id="flip" class="hide">Pen</button>
+<button id="flip" class="hide" data-t="pen">Pen</button>
 <div id="toast"></div>
 
 <div id="pm" class="modal hide"><div class="box">
@@ -116,23 +115,44 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 const $=s=>document.querySelector(s);
 let cur=null,lastM=0,busy=false,drawing=false,saveTimer=null,prevTool="pen",pdf=null,zoom=1,tool="pen",color="#111111";
-let strokes=[],deletes=[],views=[];   // strokes: saved ones have .saved+.xref, new ones don't. kind:"text" items are text boxes
+let strokes=[],deletes=[],views=[];   // saved items have .saved+.xref; every item has a permanent .u id; kind:"text" = text box
 let browsePath="",editor=null,pgBusy=false,thumbTok=0;
-// size presets (relative to page width): pen / highlighter widths, text sizes, eraser radius
+let hist=[],eb=[],inflightDel=[],editX=null,uidn=0;
+const xmap=new Map();                  // server xref -> client id
+const nu=()=>++uidn;
 const WS={pen:[0.0012,0.0022,0.0035,0.005,0.008],hl:[0.006,0.012,0.018,0.026,0.04]};
 const TS=[0.014,0.018,0.024,0.032,0.045],ER=[0.01,0.02,0.035,0.05,0.08];
 const SZ={pen:WS.pen,hl:WS.hl,tx:TS,er:ER},sz={pen:1,hl:1,tx:2,er:1};
 const FAM={helv:"Helvetica,Arial,sans-serif",tiro:'"Times New Roman",Times,serif',cour:'"Courier New",Courier,monospace'};
-const txf={font:"helv",b:0,i:0,u:0,size:TS[2]},PW=595;   // PW = A4 width in pt, used for the pt size box
+const txf={font:"helv",b:0,i:0,u:0,size:TS[2]},PW=595;   // PW = A4 width in pt (for the pt size box)
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const fontStr=(s,w)=>`${s.i?"italic ":""}${s.b?"bold ":""}${s.size*w}px ${FAM[s.font||"helv"]}`;
-const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2000)};
 const pending=()=>strokes.some(s=>!s.saved)||deletes.length>0;
 const dirty=()=>$("#save").classList.toggle("dirty",pending());
+const schedSave=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(save,1500)};
+const pushHist=h=>{hist.push(h);if(hist.length>300)hist.shift()};
+const merge=p=>p.filter(s=>!deletes.includes(s.xref)&&s.xref!==editX).concat(strokes.filter(s=>!s.saved));
+
+// ---------- floating UI: keep bar / round button / popups on the visible screen, even when pinch-zoomed
+function fitBar(){const b=$("#bar");document.body.style.paddingTop=(b.classList.contains("hide")?0:b.offsetHeight)+"px"}
+function pinAll(){
+  const vv=window.visualViewport,sc=vv?vv.scale:1,ox=vv?vv.offsetLeft:0,oy=vv?vv.offsetTop:0,
+        vw=vv?vv.width:innerWidth,vh=vv?vv.height:innerHeight,s=1/sc,tr=(x,y)=>`translate(${x}px,${y}px) scale(${s})`;
+  const bar=$("#bar");bar.style.width=Math.round(vw*sc)+"px";bar.style.transform=tr(ox,oy);
+  $("#flip").style.transform=tr(ox+vw-(64+14)*s,oy+vh-(64+18)*s);
+  document.querySelectorAll(".modal").forEach(m=>{m.style.width=Math.round(vw*sc)+"px";m.style.height=Math.round(vh*sc)+"px";m.style.transform=tr(ox,oy)});
+  const t=$("#toast");t.style.transform=tr(ox+(vw-t.offsetWidth*s)/2,oy+vh-(t.offsetHeight+20)*s);
+}
+let pq=0;const pinSoon=()=>{if(pq)return;pq=requestAnimationFrame(()=>{pq=0;pinAll()})};
+if(window.visualViewport){visualViewport.addEventListener("resize",pinSoon);visualViewport.addEventListener("scroll",pinSoon)}
+addEventListener("resize",pinSoon);addEventListener("scroll",pinSoon,{passive:true});
+new ResizeObserver(fitBar).observe($("#bar"));
+
+const toast=m=>{const t=$("#toast");t.textContent=m;pinAll();t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2000)};
 
 async function browse(path=""){
   browsePath=path;$("#pm").classList.add("hide");
-  $("#bar").classList.add("hide");$("#flip").classList.add("hide");$("#pages").innerHTML="";$("#browser").classList.remove("hide");
+  $("#bar").classList.add("hide");$("#flip").classList.add("hide");$("#pages").innerHTML="";$("#browser").classList.remove("hide");fitBar();
   const items=await (await fetch("/api/list?path="+encodeURIComponent(path))).json();
   let h=`<h2>/${path}</h2><a href="#" class="new" data-n="1">➕ New notebook here</a>`;
   if(path){const up=path.split("/").slice(0,-1).join("/");h+=`<a href="#" data-d="${up}">⬆ Up</a>`}
@@ -155,21 +175,22 @@ $("#ncreate").onclick=async()=>{
   }catch(e){toast("Create failed: "+e.message)}
 };
 
-// fetch ink saved in the PDF as editable strokes
+// fetch ink saved in the PDF as editable items (each gets a stable client id via xmap)
 async function pull(){
   const j=await (await fetch("/api/strokes?path="+encodeURIComponent(cur)+"&t="+Date.now())).json();
   lastM=j.m;
-  return j.strokes.map(s=>({...s,saved:true})).filter(s=>!deletes.includes(s.xref));
+  return j.strokes.map(s=>{let u=xmap.get(s.xref);if(!u){u=nu();xmap.set(s.xref,u)}return{...s,saved:true,u}});
 }
 const redrawAll=()=>views.forEach(redraw);
 
 async function openPdf(path){
   if(pending()&&!confirm("Discard unsaved ink?"))return;
-  cur=path;strokes=[];deletes=[];dirty();
+  cur=path;strokes=[];deletes=[];hist=[];eb=[];xmap.clear();editX=null;dirty();
   $("#browser").classList.add("hide");$("#bar").classList.remove("hide");$("#flip").classList.remove("hide");
   $("#name").textContent=path.split("/").pop();
+  fitBar();pinAll();
   pdf=await pdfjsLib.getDocument("/api/file?path="+encodeURIComponent(path)+"&t="+Date.now()).promise;
-  strokes=await pull();
+  strokes=merge(await pull());
   await render();
 }
 async function render(){
@@ -185,10 +206,9 @@ async function render(){
     wrap.append(c,ink);box.append(wrap);
     const view={i:n-1,ink,ctx:ink.getContext("2d"),w:vp.width,h:vp.height};views.push(view);
     attach(view);redraw(view);
-    // annotations are drawn by us (editable), so the PDF itself is rendered without them
     await page.render({canvasContext:c.getContext("2d"),viewport:vp,annotationMode:0}).promise;
   }
-  scrollTo(0,y*document.body.scrollHeight);updPg();
+  scrollTo(0,y*document.body.scrollHeight);updPg();fitBar();pinAll();
 }
 function line(ctx,s,w,h){
   ctx.save();ctx.lineCap=ctx.lineJoin="round";ctx.strokeStyle=s.color;ctx.globalAlpha=s.a;ctx.lineWidth=s.w*w;
@@ -196,7 +216,6 @@ function line(ctx,s,w,h){
   ctx.beginPath();s.pts.forEach(([x,y],k)=>k?ctx.lineTo(x*w,y*h):ctx.moveTo(x*w,y*h));ctx.stroke();ctx.restore();
 }
 // ---- text boxes
-
 function layout(ctx,s,w){
   ctx.font=fontStr(s,w);
   const max=s.wd*w,out=[];
@@ -215,11 +234,11 @@ function drawText(ctx,s,w,h){
   const lines=layout(ctx,s,w),lh=s.size*w*1.2;
   lines.forEach((l,k)=>{
     ctx.fillText(l,s.x*w,s.y*h+k*lh);
-    if(s.u&&l.trim())ctx.fillRect(s.x*w,s.y*h+k*lh+s.size*w*1.02,ctx.measureText(l).width,Math.max(1,s.size*w*0.06));
+    if(s.u_&&0){}
+    if(s.ul&&l.trim())ctx.fillRect(s.x*w,s.y*h+k*lh+s.size*w*1.02,ctx.measureText(l).width,Math.max(1,s.size*w*0.06));
   });
   ctx.restore();
 }
-
 const textBox=(ctx,s,w,h)=>({x:s.x*w,y:s.y*h,w:s.wd*w,h:layout(ctx,s,w).length*s.size*w*1.2});
 function hitText(v,[x,y]){
   const px=x*v.w,py=y*v.h,m=6*(window.devicePixelRatio||1);
@@ -228,14 +247,14 @@ function hitText(v,[x,y]){
   return null;
 }
 function closeText(){if(editor)editor.commit()}
-
 function openText(v,[x,y],ex){
   closeText();
   const wrap=v.ink.parentElement,cw=v.ink.clientWidth,ch=v.ink.clientHeight;
-  const base=ex?{font:"helv",b:0,i:0,u:0,...ex}:null;
+  const base=ex?{font:"helv",b:0,i:0,ul:0,...ex}:null;
   let it;
-  if(ex){it={...base};Object.assign(txf,{font:it.font,b:it.b,i:it.i,u:it.u,size:it.size});syncTb();pick(it.color)}
-  else{const size=txf.size;it={font:txf.font,b:txf.b,i:txf.i,u:txf.u,size,color,text:"",x:Math.min(x,0.9),y:Math.max(0,y-0.6*size*cw/ch),wd:Math.max(0.08,Math.min(0.5,0.98-x))}}
+  if(ex){it={...base};Object.assign(txf,{font:it.font,b:it.b,i:it.i,u:it.ul,size:it.size});syncTb();pick(it.color)}
+  else{const size=txf.size;it={font:txf.font,b:txf.b,i:txf.i,ul:txf.u,size,color,text:"",x:Math.min(x,0.9),y:Math.max(0,y-0.6*size*cw/ch),wd:Math.max(0.08,Math.min(0.5,0.98-x))}}
+  editX=ex&&ex.saved?ex.xref:null;
   const box=document.createElement("div");box.className="tbx";
   const ta=document.createElement("textarea");ta.className="tx";ta.value=it.text;
   const hm=document.createElement("div"),hl=document.createElement("div"),hr=document.createElement("div");
@@ -243,11 +262,10 @@ function openText(v,[x,y],ex){
   box.append(ta,hm,hl,hr);wrap.append(box);
   const css=()=>{
     Object.assign(box.style,{left:it.x*cw+"px",top:it.y*ch+"px",width:it.wd*cw+"px"});
-    Object.assign(ta.style,{fontSize:it.size*cw+"px",color:it.color,fontFamily:FAM[it.font],fontWeight:it.b?"700":"400",fontStyle:it.i?"italic":"normal",textDecoration:it.u?"underline":"none"});
+    Object.assign(ta.style,{fontSize:it.size*cw+"px",color:it.color,fontFamily:FAM[it.font],fontWeight:it.b?"700":"400",fontStyle:it.i?"italic":"normal",textDecoration:it.ul?"underline":"none"});
     ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";
   };
   ta.oninput=css;
-  // drag / stretch handles
   const drag=(h,fn)=>h.addEventListener("pointerdown",e=>{
     e.preventDefault();e.stopPropagation();h.setPointerCapture(e.pointerId);
     const sx=e.clientX,sy=e.clientY,o={x:it.x,y:it.y,wd:it.wd};
@@ -262,27 +280,52 @@ function openText(v,[x,y],ex){
   drawing=true;
   const t0=performance.now();let done=false;
   const commit=()=>{
-    if(done)return;done=true;editor=null;
+    if(done)return;done=true;editor=null;editX=null;
     const text=ta.value.replace(/\s+$/,"");box.remove();drawing=false;
-    const same=ex&&text===ex.text&&["font","b","i","u","size","color","x","y","wd"].every(k=>it[k]===base[k]);
+    const same=ex&&text===ex.text&&["font","b","i","ul","size","color","x","y","wd"].every(k=>it[k]===base[k]);
     if(same)strokes.push(ex);
     else{
-      if(ex&&ex.saved)deletes.push(ex.xref);
-      if(text)strokes.push({kind:"text",page:v.i,color:it.color,size:it.size,x:it.x,y:it.y,wd:it.wd,text,font:it.font,b:it.b,i:it.i,u:it.u});
+      if(ex&&ex.saved&&!deletes.includes(ex.xref))deletes.push(ex.xref);
+      let ns=null;
+      if(text){ns={u:nu(),kind:"text",page:v.i,color:it.color,size:it.size,x:it.x,y:it.y,wd:it.wd,text,font:it.font,b:it.b,i:it.i,ul:it.ul};strokes.push(ns)}
+      if(ex&&ns)pushHist({k:"edit",old:{...ex},nw:ns});
+      else if(ex)pushHist({k:"del",items:[{...ex}]});
+      else if(ns)pushHist({k:"add",s:ns});
     }
-    redraw(v);dirty();clearTimeout(saveTimer);saveTimer=setTimeout(save,1500);
+    redraw(v);dirty();schedSave();
   };
-  editor={commit,set(p){Object.assign(it,p);css();ta.focus()}};
+  editor={commit,set(p){if("u" in p){p.ul=p.u;delete p.u}Object.assign(it,p);css();ta.focus()}};
   ta.addEventListener("blur",e=>{
     if(done)return;
-    if(e.relatedTarget&&$("#bar").contains(e.relatedTarget))return;   // clicked a toolbar control
+    if(e.relatedTarget&&$("#bar").contains(e.relatedTarget))return;
     if(performance.now()-t0<300){setTimeout(()=>ta.focus(),0);return}
     commit()});
   ta.addEventListener("keydown",e=>{if(e.key==="Escape")ta.blur()});
   css();ta.focus();
 }
-
 function redraw(v){v.ctx.clearRect(0,0,v.w,v.h);strokes.filter(s=>s.page===v.i).forEach(s=>s.kind==="text"?drawText(v.ctx,s,v.w,v.h):line(v.ctx,s,v.w,v.h))}
+
+// ---- add / remove helpers (all undo-aware)
+function removeStroke(u){
+  const s=strokes.find(t=>t.u===u);if(!s)return;
+  strokes=strokes.filter(t=>t.u!==u);
+  if(s.saved&&!deletes.includes(s.xref))deletes.push(s.xref);
+}
+function restore(o){
+  if(strokes.some(t=>t.u===o.u))return;
+  const pend=o.saved&&o.xref!=null&&deletes.includes(o.xref)&&!inflightDel.includes(o.xref);
+  if(pend){deletes=deletes.filter(x=>x!==o.xref);strokes.push({...o})}      // still on the server: just cancel the delete
+  else{const c={...o};delete c.saved;delete c.xref;strokes.push(c)}          // already gone from server: add it again
+}
+function undo(){
+  closeText();
+  const h=hist.pop();if(!h)return toast("Nothing to undo");
+  if(h.k==="add")removeStroke(h.s.u);
+  else if(h.k==="del")h.items.forEach(restore);
+  else if(h.k==="edit"){removeStroke(h.nw.u);restore(h.old)}
+  redrawAll();dirty();schedSave();
+}
+
 function attach(v){
   const el=v.ink;let s=null,tx0=null;
   const pos=e=>{const r=el.getBoundingClientRect();return[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]};
@@ -294,8 +337,8 @@ function attach(v){
     if(e.pointerType==="touch")return;
     closeText();
     el.setPointerCapture(e.pointerId);drawing=true;clearTimeout(saveTimer);
-    if(tool==="er"){eraseAt(v,pos(e));s="erase";return}
-    s={page:v.i,color:color,w:WS[tool][sz[tool]],a:tool==="hl"?0.35:1,pts:[pos(e)]};strokes.push(s);
+    if(tool==="er"){eb=[];eraseAt(v,pos(e));s="erase";return}
+    s={u:nu(),page:v.i,color:color,w:WS[tool][sz[tool]],a:tool==="hl"?0.35:1,pts:[pos(e)]};strokes.push(s);
   });
   el.addEventListener("pointermove",e=>{
     if(!s)return;
@@ -303,8 +346,11 @@ function attach(v){
     for(const ev of(e.getCoalescedEvents?e.getCoalescedEvents():[e]))s.pts.push(pos(ev));
     redraw(v);
   });
-  const end=()=>{if(!s)return;if(s!=="erase"&&s.pts.length<2)strokes.pop();s=null;drawing=false;redraw(v);dirty();
-    clearTimeout(saveTimer);saveTimer=setTimeout(save,1500)};
+  const end=()=>{if(!s)return;
+    if(s==="erase"){if(eb.length)pushHist({k:"del",items:eb});eb=[]}
+    else if(s.pts.length<2){const d=s;strokes=strokes.filter(t=>t!==d)}
+    else pushHist({k:"add",s});
+    s=null;drawing=false;redraw(v);dirty();schedSave()};
   el.addEventListener("pointerup",e=>{
     if(tool==="tx"&&tx0){const m=Math.hypot(e.clientX-tx0.x,e.clientY-tx0.y);tx0=null;
       if(m<=8){const p=pos(e);openText(v,p,hitText(v,p))}return}
@@ -318,18 +364,26 @@ function hitS(v,s,x,y,r){
   return s.pts.some(([px,py])=>Math.hypot(px-x,(py-y)*v.h/v.w)<r);
 }
 function eraseAt(v,[x,y]){
-  const r=ER[sz.er];let hit=false;
-  for(const s of strokes)if(s.page===v.i&&hitS(v,s,x,y,r)){
-    hit=true;if(s.saved&&!deletes.includes(s.xref))deletes.push(s.xref);s.dead=true}
-  if(hit){strokes=strokes.filter(s=>!s.dead&&!(s.saved&&deletes.includes(s.xref)));redraw(v);dirty()}
+  const r=ER[sz.er],hit=strokes.filter(s=>s.page===v.i&&hitS(v,s,x,y,r));
+  if(!hit.length)return;
+  hit.forEach(s=>{eb.push({...s});removeStroke(s.u)});
+  redraw(v);dirty();
 }
+
+// ---- tools / colours / sizes
 const refreshSz=()=>document.querySelectorAll(".sz").forEach(b=>b.classList.toggle("on",+b.dataset.i===sz[tool]));
-const setTool=t=>{if(t!=="tx")closeText();tool=t;$("#tbar").classList.toggle("hide",t!=="tx");
-["pen","hl","tx","er"].forEach(k=>$("#"+k).classList.toggle("on",k===t));
+function pick(c){color=c;document.querySelectorAll(".sw").forEach(b=>b.classList.toggle("on",b.dataset.c===c));if(editor)editor.set({color:c})}
+function setTool(t){
+  if(t!=="tx")closeText();
+  tool=t;
+  $("#tbar").classList.toggle("hide",t!=="tx");
+  const L={er:"Eraser",hl:"Marker",tx:"Text",pen:"Pen"},f=$("#flip");
+  f.textContent=L[t]||"Pen";f.dataset.t=t;
+  ["pen","hl","tx","er"].forEach(k=>$("#"+k).classList.toggle("on",k===t));
   if(t==="hl"&&color==="#111111")pick("#ffe600");
   if(t==="tx"&&color==="#ffe600")pick("#111111");
-  refreshSz()};
-const pick=c=>{color=c;document.querySelectorAll(".sw").forEach(b=>b.classList.toggle("on",b.dataset.c===c));if(editor)editor.set({color:c})};
+  refreshSz();fitBar();
+}
 $("#pen").onclick=()=>setTool("pen");$("#hl").onclick=()=>setTool("hl");$("#tx").onclick=()=>setTool("tx");$("#er").onclick=()=>setTool("er");
 document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{pick(b.dataset.c);if(tool==="er")setTool("pen")});
 $("#cc").oninput=e=>{pick(e.target.value);if(tool==="er")setTool("pen")};
@@ -340,40 +394,55 @@ document.querySelectorAll(".sz").forEach(b=>b.onclick=()=>{
 // ---- text toolbar
 function syncTb(){$("#tfont").value=txf.font;$("#tsize").value=Math.round(txf.size*PW);
   ["b","i","u"].forEach(k=>$("#t"+k).classList.toggle("on",!!txf[k]))}
-function tset(p){Object.assign(txf,p);syncTb();if(editor)editor.set(p)}
+function tset(p){Object.assign(txf,p);syncTb();if(editor)editor.set({...p})}
 $("#tfont").onchange=e=>tset({font:e.target.value});
 $("#tsize").oninput=e=>{const v=+e.target.value;if(v>=4&&v<=300){txf.size=v/PW;if(editor)editor.set({size:v/PW})}};
 $("#tb").onclick=()=>tset({b:txf.b?0:1});
 $("#ti").onclick=()=>tset({i:txf.i?0:1});
 $("#tu").onclick=()=>tset({u:txf.u?0:1});
-$("#bar").addEventListener("pointerdown",e=>{if(editor&&e.target.closest("button"))e.preventDefault()}); // keep the text box focused
+$("#bar").addEventListener("pointerdown",e=>{if(editor&&e.target.closest("button"))e.preventDefault()});
 syncTb();
-$("#undo").onclick=()=>{
-  closeText();
-  const s=strokes.pop();if(!s)return;
-  if(s.saved){deletes.push(s.xref);strokes=strokes.filter(t=>t.xref!==s.xref);redrawAll()}else redraw(views[s.page]);
-  dirty();clearTimeout(saveTimer);saveTimer=setTimeout(save,1500);
-};
+
+$("#undo").onclick=undo;
+addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"&&!(e.target.matches&&e.target.matches("textarea,input"))){e.preventDefault();undo()}});
 $("#zi").onclick=()=>{zoom=Math.min(3,zoom+.25);render()};$("#zo").onclick=()=>{zoom=Math.max(.5,zoom-.25);render()};
-$("#files").onclick=()=>{closeText();if(!pending()||confirm("Discard unsaved ink?")){strokes=[];deletes=[];browse(cur?cur.split("/").slice(0,-1).join("/"):"")}};
+$("#files").onclick=()=>{closeText();if(!pending()||confirm("Discard unsaved ink?")){strokes=[];deletes=[];hist=[];browse(cur?cur.split("/").slice(0,-1).join("/"):"")}};
+
+const payload=s=>s.kind==="text"
+  ?{kind:"text",page:s.page,color:s.color,x:s.x,y:s.y,wd:s.wd,size:s.size,text:s.text,font:s.font||"helv",b:s.b?1:0,i:s.i?1:0,u:s.ul?1:0}
+  :{page:s.page,color:s.color,w:s.w,a:s.a,pts:s.pts};
+
 async function save(manual){
   if(!pending())return manual===true&&toast("Nothing new to save");
   if(drawing||busy){clearTimeout(saveTimer);saveTimer=setTimeout(save,1200);return}
-  busy=true;const nw=strokes.filter(s=>!s.saved),dl=deletes.slice();
+  busy=true;
+  const nw=strokes.filter(s=>!s.saved),dl=deletes.slice();inflightDel=dl;
   try{
     const r=await fetch("/api/save?path="+encodeURIComponent(cur),{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({strokes:nw.map(s=>s.kind==="text"?{kind:"text",page:s.page,color:s.color,x:s.x,y:s.y,wd:s.wd,size:s.size,text:s.text,font:s.font||"helv",b:s.b?1:0,i:s.i?1:0,u:s.u?1:0}
-        :{page:s.page,color:s.color,w:s.w,a:s.a,pts:s.pts}),delete:dl})});
+      body:JSON.stringify({strokes:nw.map(payload),delete:dl})});
     if(!r.ok)throw new Error(r.status);
-    const j=await r.json().catch(()=>({}));
+    const j=await r.json().catch(()=>({})),xr=j.xrefs||[];
+    dl.forEach(x=>xmap.delete(x));
     deletes=deletes.filter(x=>!dl.includes(x));
-    const later=strokes.filter(s=>!s.saved&&!nw.includes(s));   // drawn while saving
-    strokes=(await pull()).concat(later);redrawAll();dirty();toast(j.failed?"Saved, but "+j.failed+" text item(s) failed":"Saved");
-  }catch(e){toast("Save failed: "+e.message)}
-  busy=false;
+    const failed=new Set();
+    nw.forEach((s,k)=>{
+      const x=xr[k];
+      if(x==null){failed.add(s.u);return}
+      const c=strokes.find(t=>t.u===s.u);
+      if(c){c.saved=true;c.xref=x;xmap.set(x,s.u)}   // still wanted: now linked to the server copy
+      else deletes.push(x);                          // removed while saving: delete the server copy too
+    });
+    const pulled=await pull();
+    strokes=merge(pulled).filter(s=>!failed.has(s.u));
+    redrawAll();dirty();
+    toast(j.failed?"Saved, but "+j.failed+" item(s) failed":"Saved");
+  }catch(e){toast("Save failed: "+e.message);inflightDel=[];busy=false;return}
+  inflightDel=[];busy=false;
+  if(pending())schedSave();
 }
 $("#save").onclick=()=>save(true);
-$("#flip").onclick=()=>{if(tool==="er")setTool(prevTool);else{prevTool=tool;setTool("er")}};
+let flipPrev="pen";
+$("#flip").onclick=()=>{if(tool==="er")setTool(flipPrev);else{flipPrev=tool;setTool("er")}};
 
 // ---- page indicator / navigation
 let rq=0;
@@ -383,7 +452,7 @@ addEventListener("scroll",()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;u
 function goPage(i){const el=views[i]&&views[i].ink.parentElement;if(!el)return;
   scrollTo({top:el.getBoundingClientRect().top+scrollY-$("#bar").offsetHeight-8})}
 
-// ---- page management (add / delete / reorder), always saves pending ink first
+// ---- page management
 async function flush(){
   closeText();clearTimeout(saveTimer);
   for(let k=0;k<50&&(busy||drawing);k++)await new Promise(r=>setTimeout(r,100));
@@ -399,7 +468,8 @@ async function pageOp(body){
     if(!r.ok)throw new Error(r.status);
     const j=await r.json();
     pdf=await pdfjsLib.getDocument("/api/file?path="+encodeURIComponent(cur)+"&t="+Date.now()).promise;
-    strokes=await pull();lastM=j.m;
+    xmap.clear();hist=[];strokes=[];
+    strokes=merge(await pull());lastM=j.m;
     await render();
     if(!$("#pm").classList.contains("hide"))await thumbs();
     return true;
@@ -428,7 +498,7 @@ async function thumbs(){
     const slot=g.children[k-1]&&g.children[k-1].querySelector(".cv");if(slot)slot.append(cv);
   }
 }
-$("#pgs").onclick=async()=>{closeText();$("#pm").classList.remove("hide");await thumbs()};
+$("#pgs").onclick=async()=>{closeText();$("#pm").classList.remove("hide");pinAll();await thumbs()};
 $("#pclose").onclick=()=>{$("#pm").classList.add("hide");thumbTok++};
 $("#padd").onclick=()=>pageOp({action:"add",index:pdf.numPages-1,template:$("#ptpl").value});
 $("#qadd").onclick=async()=>{const i=curPage();if(await pageOp({action:"add",index:i,template:$("#ptpl").value}))goPage(i+1)};
@@ -442,13 +512,20 @@ $("#grid").onclick=async e=>{
   else if(a==="A")await pageOp({action:"add",index:i,template:$("#ptpl").value});
   else if(a==="D"&&confirm("Delete page "+(i+1)+"? This can't be undone."))await pageOp({action:"delete",index:i});
 };
+// new notebook popup opens via the browser; make sure popups are positioned
+$("#browser").addEventListener("click",()=>pinAll());
 
-// pick up ink saved from another device — only strokes are refreshed, so nothing jumps
+// pick up ink saved from another device — never while you're drawing/saving, and never overwrites unsaved work
 setInterval(async()=>{
   if(!cur||!pdf||busy||drawing||pending()||document.hidden)return;
-  try{const j=await (await fetch("/api/mtime?path="+encodeURIComponent(cur))).json();
-    if(j.m!==lastM){strokes=await pull();redrawAll()}}catch(e){}
+  try{
+    const j=await (await fetch("/api/mtime?path="+encodeURIComponent(cur))).json();
+    if(j.m===lastM)return;
+    const old=lastM,p=await pull();
+    if(busy||drawing||pending()){lastM=old;return}
+    strokes=merge(p);redrawAll();
+  }catch(e){}
 },3000);
 addEventListener("beforeunload",e=>{if(pending()){e.preventDefault();e.returnValue=""}});
-browse("");
+pinAll();browse("");
 </script></body></html>

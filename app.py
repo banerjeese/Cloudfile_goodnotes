@@ -1,5 +1,5 @@
 """PDF ink editor: browse PDFs in a server folder, draw on them with a stylus, save in place.
-Run:  pip install flask pymupdf
+Run:  pip install -r requirements.txt
       APP_PASSWORD=secret ROOT=~/remote_storage python app.py
 """
 import os, re, shutil, tempfile
@@ -74,18 +74,19 @@ def api_strokes():
                 txt = info.get("content", "") or ""
                 if not txt.strip():
                     continue
-                m = re.search(r"pdfink:size=([0-9.]+);color=(#[0-9a-fA-F]{6})", info.get("subject", "") or "")
                 sub = info.get("subject", "") or ""
-                fm = re.search(r"font=(helv|tiro|cour)", sub)
+                m = re.search(r"pdfink:size=([0-9.]+);color=(#[0-9a-fA-F]{6})", sub)
+                fm = re.search(r";font=(helv|tiro|cour)", sub)
                 fb, fi, fu = (re.search(r";%s=([01])" % k, sub) for k in "biu")
                 size = float(m.group(1)) if m else 12.0 / r.width
                 color = m.group(2) if m else "#111111"
                 q = (fitz.Rect(an.rect) * pg.rotation_matrix).normalize()
                 out.append({"kind": "text", "page": pi, "xref": an.xref, "color": color, "size": size,
-                            "x": q.x0 / r.width, "y": q.y0 / r.height, "wd": q.width / r.width, "text": txt, 
+                            "x": q.x0 / r.width, "y": q.y0 / r.height, "wd": q.width / r.width, "text": txt,
                             "font": fm.group(1) if fm else "helv",
-"b": int(fb.group(1)) if fb else 0, "i": int(fi.group(1)) if fi else 0, "u": int(fu.group(1)) if fu else 0,
-                            })
+                            "b": int(fb.group(1)) if fb else 0,
+                            "i": int(fi.group(1)) if fi else 0,
+                            "ul": int(fu.group(1)) if fu else 0})
                 continue
             st = (an.colors or {}).get("stroke") or (0, 0, 0)
             color = "#%02x%02x%02x" % tuple(int(round(c * 255)) for c in st[:3])
@@ -127,11 +128,70 @@ def wrap_lines(text, fs, width, fontname="helv"):
         out.append(cur)
     return out
 
-
 def backup_once(p):
     bak = p + ".orig.bak"            # one-time safety copy of the untouched original
     if not os.path.exists(bak):
         shutil.copy2(p, bak)
+
+def add_text(doc, s):
+    """Add one text box as a FreeText annotation. Returns its xref (or None)."""
+    text = str(s.get("text", ""))[:5000]
+    if not text.strip() or not re.fullmatch(r"#[0-9a-fA-F]{6}", s.get("color", "")):
+        return None
+    pg = doc[int(s["page"])]
+    r = pg.rect
+    size = float(s["size"])
+    fs = max(4.0, size * r.width)
+    x0, y0 = float(s["x"]) * r.width, float(s["y"]) * r.height
+    wd = max(30.0, float(s["wd"]) * r.width)
+    fkey = s.get("font", "helv")
+    if fkey not in FONTMAP:
+        fkey = "helv"
+    fn = pdf_font(fkey, s.get("b"), s.get("i"))
+    lines = wrap_lines(text, fs, wd, fn)
+    h = (len(lines) + 1) * fs * 1.25 + fs
+    rect = fitz.Rect(x0, y0, x0 + wd, y0 + h) * pg.derotation_matrix
+    c = s["color"].lstrip("#")
+    rgb = tuple(int(c[i:i+2], 16) / 255 for i in (0, 2, 4))
+    a = pg.add_freetext_annot(rect.normalize(), text, fontsize=fs, fontname=fn,
+                              text_color=rgb, fill_color=None, align=0)
+    if not a:
+        return None
+    a.set_info(subject="pdfink:size=%.5f;color=%s;font=%s;b=%d;i=%d;u=%d" % (
+        size, s["color"].lower(), fkey,
+        1 if s.get("b") else 0, 1 if s.get("i") else 0, 1 if s.get("u") else 0))
+    xref = a.xref
+    if s.get("u"):                    # FreeText has no underline: draw a companion line per wrapped row
+        for k, ln in enumerate(lines):
+            if not ln.strip():
+                continue
+            ww = fitz.get_text_length(ln, fontname=fn, fontsize=fs)
+            yy = y0 + k * fs * 1.2 + fs * 1.05
+            u = pg.add_line_annot(fitz.Point(x0, yy) * pg.derotation_matrix,
+                                  fitz.Point(x0 + ww, yy) * pg.derotation_matrix)
+            u.set_colors(stroke=rgb)
+            u.set_border(width=max(0.5, fs * 0.06))
+            u.set_info(subject="pdfink-ul:%d" % xref)
+            u.update()
+    return xref
+
+def add_ink(doc, s):
+    """Add one pen/highlighter stroke as an Ink annotation. Returns its xref (or None)."""
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", s.get("color", "")) or len(s.get("pts", [])) < 2:
+        return None
+    pg = doc[int(s["page"])]
+    r = pg.rect
+    pts = []
+    for x, y in s["pts"]:
+        q = fitz.Point(x * r.width, y * r.height) * pg.derotation_matrix
+        pts.append((float(q.x), float(q.y)))
+    a = pg.add_ink_annot([pts])
+    c = s["color"].lstrip("#")
+    a.set_colors(stroke=tuple(int(c[i:i+2], 16) / 255 for i in (0, 2, 4)))
+    a.set_border(width=max(0.3, float(s["w"]) * r.width))
+    a.set_opacity(float(s.get("a", 1)))
+    a.update()
+    return a.xref
 
 @app.route("/api/save", methods=["POST"])
 def api_save():
@@ -141,78 +201,29 @@ def api_save():
     body = request.get_json(force=True) or {}
     strokes, dels = body.get("strokes", []), set(int(x) for x in body.get("delete", []))
     if not strokes and not dels:
-        return jsonify(ok=True, added=0, m=os.path.getmtime(p))
+        return jsonify(ok=True, added=0, xrefs=[], failed=0, m=os.path.getmtime(p))
     backup_once(p)
     doc = fitz.open(p)
-    if dels:
+    if dels:                          # erase previously saved ink / text (and underline companions)
         for pg in doc:
             for an in [a for a in (pg.annots() or []) if a.xref in dels or
                        ((a.info.get("subject") or "").startswith("pdfink-ul:") and
-                        int(a.info["subject"].split(":")[1]) in dels)]:
+                        int((a.info["subject"].split(":") + ["-1"])[1] or -1) in dels)]:
                 pg.delete_annot(an)
-    added = failed = 0
+    xrefs = []                        # one entry per incoming item, same order (None = not added)
     for s in strokes:
-        if s.get("kind") == "text":   # text box -> FreeText annotation
-            try:
-                text = str(s.get("text", ""))[:5000]
-                if not text.strip() or not re.fullmatch(r"#[0-9a-fA-F]{6}", s.get("color", "")):
-                    continue
-                pg = doc[int(s["page"])]
-                r = pg.rect
-                size = float(s["size"])
-                fs = max(4.0, size * r.width)
-                x0, y0 = float(s["x"]) * r.width, float(s["y"]) * r.height
-                wd = max(30.0, float(s["wd"]) * r.width)
-                fn = pdf_font(s.get("font", "helv"), s.get("b"), s.get("i"))
-                h = (len(wrap_lines(text, fs, wd, fn)) + 1) * fs * 1.25 + fs
-                rect = fitz.Rect(x0, y0, x0 + wd, y0 + h) * pg.derotation_matrix
-                c = s["color"].lstrip("#")
-                rgb = tuple(int(c[i:i+2], 16) / 255 for i in (0, 2, 4))
-                a = pg.add_freetext_annot(rect.normalize(), text, fontsize=fs, fontname=fn,
-                                          text_color=rgb, fill_color=None, align=0)
-                if not a:
-                    failed += 1
-                    continue
-                a.set_info(subject="pdfink:size=%.5f;color=%s;font=%s;b=%d;i=%d;u=%d" % (
-                    size, s["color"].lower(), s.get("font", "helv"),
-                    1 if s.get("b") else 0, 1 if s.get("i") else 0, 1 if s.get("u") else 0))
-                if s.get("u"):            # FreeText has no underline, so draw a companion line per wrapped row
-                    for k, ln in enumerate(wrap_lines(text, fs, wd, fn)):
-                        if not ln.strip():
-                            continue
-                        ww = fitz.get_text_length(ln, fontname=fn, fontsize=fs)
-                        yy = y0 + k * fs * 1.2 + fs * 1.05
-                        u = pg.add_line_annot(fitz.Point(x0, yy) * pg.derotation_matrix,
-                                              fitz.Point(x0 + ww, yy) * pg.derotation_matrix)
-                        u.set_colors(stroke=rgb)
-                        u.set_border(width=max(0.5, fs * 0.06))
-                        u.set_info(subject="pdfink-ul:%d" % a.xref)
-                        u.update()
-                added += 1
-            except Exception:
-                failed += 1
-            continue
-        if not re.fullmatch(r"#[0-9a-fA-F]{6}", s.get("color", "")) or len(s.get("pts", [])) < 2:
-            continue
-        pg = doc[int(s["page"])]
-        r = pg.rect
-        pts = []
-        for x, y in s["pts"]:
-            q = fitz.Point(x * r.width, y * r.height) * pg.derotation_matrix
-            pts.append((float(q.x), float(q.y)))
-        a = pg.add_ink_annot([pts])
-        c = s["color"].lstrip("#")
-        a.set_colors(stroke=tuple(int(c[i:i+2], 16) / 255 for i in (0, 2, 4)))
-        a.set_border(width=max(0.3, float(s["w"]) * r.width))
-        a.set_opacity(float(s.get("a", 1)))
-        a.update()
-        added += 1
+        try:
+            x = add_text(doc, s) if s.get("kind") == "text" else add_ink(doc, s)
+        except Exception:
+            x = None
+        xrefs.append(x)
+    added = sum(1 for x in xrefs if x is not None)
     fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(p))
     os.close(fd)
     doc.save(tmp, garbage=0, deflate=True)   # garbage=0 keeps annotation ids stable
     doc.close()
     os.replace(tmp, p)               # atomic overwrite, same folder, same name
-    return jsonify(ok=True, added=added, failed=failed, m=os.path.getmtime(p))
+    return jsonify(ok=True, added=added, failed=len(xrefs) - added, xrefs=xrefs, m=os.path.getmtime(p))
 
 @app.route("/api/mtime")
 def api_mtime():
