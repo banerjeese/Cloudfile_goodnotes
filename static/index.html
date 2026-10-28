@@ -16,9 +16,7 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 .sw{width:30px;min-height:30px!important;height:30px;padding:0!important;border-radius:50%!important;border:2px solid #3a4256!important}
 .sw.on{border-color:#fff!important}
 #cc{width:30px;height:30px;padding:0;border:2px solid #3a4256;border-radius:50%;background:none;overflow:hidden}
-#sizes{display:flex;gap:4px;padding:0 4px}
-.sz{width:36px;padding:0!important;display:flex;align-items:center;justify-content:center}
-.sz i{display:block;border-radius:50%;background:#fff}
+#szm,#szp{min-width:44px;padding:8px!important;font-weight:600}
 #name{margin-left:auto;opacity:.75;max-width:30ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bar select,#bar #tsize{background:var(--bar2);color:var(--fg);border:1px solid #3a4256;border-radius:8px;padding:8px;min-height:40px;font:inherit}
 #bar #tsize{width:64px}
@@ -35,12 +33,18 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 .tbx textarea.tx{display:block;width:100%;margin:0;padding:0;border:0;outline:0;background:transparent;resize:none;overflow:hidden;line-height:1.2}
 .hd{position:absolute;background:var(--acc);color:#fff;touch-action:none;display:flex;align-items:center;justify-content:center;user-select:none}
 .hd.mv{left:-2px;top:-30px;width:30px;height:28px;border-radius:6px 6px 0 0;cursor:move;font-size:16px}
+.hd.ok{left:30px;top:-30px;height:28px;padding:0 12px;border-radius:6px 6px 0 0;cursor:pointer;font:600 13px -apple-system,system-ui,sans-serif;white-space:nowrap;background:var(--ok);color:#06231a}
 .hd.lf,.hd.rt{top:50%;width:14px;height:34px;margin-top:-17px;border-radius:7px;cursor:ew-resize}
 .hd.lf{left:-8px}.hd.rt{right:-8px}
-#flip{position:fixed;left:0;top:0;transform-origin:0 0;z-index:6;width:64px;height:64px;border-radius:50%;border:0;background:var(--acc);color:#fff;font:600 13px/1.1 -apple-system,system-ui,sans-serif;box-shadow:0 2px 8px #0006}
+#flip{position:fixed;left:0;top:0;transform-origin:0 0;z-index:9;width:64px;height:64px;border-radius:50%;border:0;background:var(--acc);color:#fff;font:600 13px/1.1 -apple-system,system-ui,sans-serif;box-shadow:0 2px 8px #0006;touch-action:none;user-select:none;-webkit-user-select:none}
 #flip[data-t="er"]{background:#e5484d}
 #toast{position:fixed;left:0;top:0;transform-origin:0 0;z-index:30;background:#111;color:#fff;padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
 #toast.show{opacity:1}
+#pp{position:fixed;left:0;top:0;transform-origin:0 0;z-index:8;background:#fff;color:#1b1e27;border-radius:12px;padding:12px;box-shadow:0 4px 18px #0006}
+#pp label{display:block;font-size:13px;margin-top:8px;opacity:.8}
+#pp input[type=range]{width:100%}
+#pp button{font:inherit;border:1px solid #bbc;background:#fff;border-radius:8px;padding:8px 10px;min-height:38px}
+#pad{display:block;width:100%;height:110px;background:#fff;border:1px dashed #99a;border-radius:8px;touch-action:none;margin-top:10px}
 .modal{position:fixed;left:0;top:0;transform-origin:0 0;background:#0008;z-index:20;display:flex;align-items:center;justify-content:center}
 .box{background:#fff;border-radius:12px;max-width:920px;width:94%;max-height:90%;overflow:auto;padding:12px}
 .box.small{max-width:420px}
@@ -63,6 +67,9 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
   <button id="hl">Highlighter</button>
   <button id="tx">Text</button>
   <button id="er">Eraser</button>
+  <span id="ebar" class="hide" style="display:contents">
+    <button id="em0">Stroke</button><button id="em1">Pixel</button>
+  </span>
   <span id="tbar" class="hide" style="display:contents">
     <select id="tfont"><option value="helv">Helvetica</option><option value="tiro">Times</option><option value="cour">Courier</option></select>
     <input id="tsize" type="number" min="4" max="300" title="Font size (pt)">
@@ -75,13 +82,8 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
   <button class="sw" data-c="#f97316" style="background:#f97316" aria-label="Orange"></button>
   <button class="sw" data-c="#ffe600" style="background:#ffe600" aria-label="Yellow"></button>
   <input type="color" id="cc" value="#8b5cf6" aria-label="Custom colour" title="Custom colour">
-  <span id="sizes">
-    <button class="sz" data-i="0" aria-label="Size 1"><i style="width:4px;height:4px"></i></button>
-    <button class="sz on" data-i="1" aria-label="Size 2"><i style="width:7px;height:7px"></i></button>
-    <button class="sz" data-i="2" aria-label="Size 3"><i style="width:10px;height:10px"></i></button>
-    <button class="sz" data-i="3" aria-label="Size 4"><i style="width:14px;height:14px"></i></button>
-    <button class="sz" data-i="4" aria-label="Size 5"><i style="width:19px;height:19px"></i></button>
-  </span>
+  <button id="szm" aria-label="Smaller">A−</button><button id="szp" aria-label="Larger">A+</button>
+  <button id="cfg">⚙ Pen</button>
   <button id="undo">Undo</button>
   <button id="zo" aria-label="Zoom out">−</button><button id="zi" aria-label="Zoom in">+</button>
   <button id="pgs">Pages</button>
@@ -93,6 +95,15 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 <div id="pages"></div>
 <button id="flip" class="hide" data-t="pen">Pen</button>
 <div id="toast"></div>
+
+<div id="pp" class="hide">
+  <div class="mh"><b>Pen settings</b><button id="ppx">✕</button></div>
+  <label id="lSize">Pen thickness</label><input type="range" id="pSize" min="0" max="100">
+  <label>Smoothing / stability</label><input type="range" id="pSm" min="0" max="100">
+  <label>Pressure sensitivity (0 = off)</label><input type="range" id="pPr" min="0" max="100">
+  <canvas id="pad"></canvas>
+  <div class="mh" style="margin:10px 0 0"><button id="pclr">Clear pad</button><button id="prst">Reset</button></div>
+</div>
 
 <div id="pm" class="modal hide"><div class="box">
   <div class="mh"><b>Pages</b>
@@ -114,18 +125,25 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 const $=s=>document.querySelector(s);
-let cur=null,lastM=0,busy=false,drawing=false,saveTimer=null,prevTool="pen",pdf=null,zoom=1,tool="pen",color="#111111";
+let cur=null,lastM=0,busy=false,drawing=false,saveTimer=null,pdf=null,zoom=1,tool="pen",color="#111111";
 let strokes=[],deletes=[],views=[];   // saved items have .saved+.xref; every item has a permanent .u id; kind:"text" = text box
 let browsePath="",editor=null,pgBusy=false,thumbTok=0;
-let hist=[],eb=[],inflightDel=[],editX=null,uidn=0;
+let hist=[],inflightDel=[],editX=null,uidn=0,ger=null,elast=null;
 const xmap=new Map();                  // server xref -> client id
 const nu=()=>++uidn;
-const WS={pen:[0.0012,0.0022,0.0035,0.005,0.008],hl:[0.006,0.012,0.018,0.026,0.04]};
-const TS=[0.014,0.018,0.024,0.032,0.045],ER=[0.01,0.02,0.035,0.05,0.08];
-const SZ={pen:WS.pen,hl:WS.hl,tx:TS,er:ER},sz={pen:1,hl:1,tx:2,er:1};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+// ---------- preferences (kept on this device)
+const RG={pen:[0.0008,0.012],hl:[0.005,0.05],er:[0.008,0.09]};   // size ranges (fraction of page width)
+const P={pen:0.0022,hl:0.012,er:0.02,smooth:0.35,press:0.55,emode:"stroke"};
+const PD={...P};
+let fpos={x:0.96,y:0.88};                                         // round button position (0..1 of the visible screen)
+try{const q=JSON.parse(localStorage.getItem("pdfink.prefs")||"{}");Object.assign(P,q.P||{});Object.assign(fpos,q.f||{})}catch(e){}
+const savePrefs=()=>{try{localStorage.setItem("pdfink.prefs",JSON.stringify({P,f:fpos}))}catch(e){}};
+
+const TS=[0.014,0.018,0.024,0.032,0.045];
 const FAM={helv:"Helvetica,Arial,sans-serif",tiro:'"Times New Roman",Times,serif',cour:'"Courier New",Courier,monospace'};
 const txf={font:"helv",b:0,i:0,u:0,size:TS[2]},PW=595;   // PW = A4 width in pt (for the pt size box)
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const fontStr=(s,w)=>`${s.i?"italic ":""}${s.b?"bold ":""}${s.size*w}px ${FAM[s.font||"helv"]}`;
 const pending=()=>strokes.some(s=>!s.saved)||deletes.length>0;
 const dirty=()=>$("#save").classList.toggle("dirty",pending());
@@ -133,25 +151,30 @@ const schedSave=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(save,1500)};
 const pushHist=h=>{hist.push(h);if(hist.length>300)hist.shift()};
 const merge=p=>p.filter(s=>!deletes.includes(s.xref)&&s.xref!==editX).concat(strokes.filter(s=>!s.saved));
 
-// ---------- floating UI: keep bar / round button / popups on the visible screen, even when pinch-zoomed
+// ---------- floating UI: keep bar / round button / panels on the visible screen, even when pinch-zoomed
 function fitBar(){const b=$("#bar");document.body.style.paddingTop=(b.classList.contains("hide")?0:b.offsetHeight)+"px"}
 function pinAll(){
   const vv=window.visualViewport,sc=vv?vv.scale:1,ox=vv?vv.offsetLeft:0,oy=vv?vv.offsetTop:0,
         vw=vv?vv.width:innerWidth,vh=vv?vv.height:innerHeight,s=1/sc,tr=(x,y)=>`translate(${x}px,${y}px) scale(${s})`;
   const bar=$("#bar");bar.style.width=Math.round(vw*sc)+"px";bar.style.transform=tr(ox,oy);
-  $("#flip").style.transform=tr(ox+vw-(64+14)*s,oy+vh-(64+18)*s);
+  const fw=64*s;$("#flip").style.transform=tr(ox+fpos.x*(vw-fw),oy+fpos.y*(vh-fw));
+  const pp=$("#pp");
+  if(!pp.classList.contains("hide")){const w=Math.min(Math.round(vw*sc)-16,380);pp.style.width=w+"px";pp.style.transform=tr(ox+(vw-w*s)/2,oy+vh-(pp.offsetHeight+10)*s)}
   document.querySelectorAll(".modal").forEach(m=>{m.style.width=Math.round(vw*sc)+"px";m.style.height=Math.round(vh*sc)+"px";m.style.transform=tr(ox,oy)});
   const t=$("#toast");t.style.transform=tr(ox+(vw-t.offsetWidth*s)/2,oy+vh-(t.offsetHeight+20)*s);
 }
 let pq=0;const pinSoon=()=>{if(pq)return;pq=requestAnimationFrame(()=>{pq=0;pinAll()})};
-if(window.visualViewport){visualViewport.addEventListener("resize",pinSoon);visualViewport.addEventListener("scroll",pinSoon)}
+if(window.visualViewport){
+  visualViewport.addEventListener("resize",()=>{pinSoon();if(editor)setTimeout(()=>editor&&editor.reveal(),120)});
+  visualViewport.addEventListener("scroll",pinSoon);
+}
 addEventListener("resize",pinSoon);addEventListener("scroll",pinSoon,{passive:true});
 new ResizeObserver(fitBar).observe($("#bar"));
 
 const toast=m=>{const t=$("#toast");t.textContent=m;pinAll();t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2000)};
 
 async function browse(path=""){
-  browsePath=path;$("#pm").classList.add("hide");
+  browsePath=path;$("#pm").classList.add("hide");$("#pp").classList.add("hide");
   $("#bar").classList.add("hide");$("#flip").classList.add("hide");$("#pages").innerHTML="";$("#browser").classList.remove("hide");fitBar();
   const items=await (await fetch("/api/list?path="+encodeURIComponent(path))).json();
   let h=`<h2>/${path}</h2><a href="#" class="new" data-n="1">➕ New notebook here</a>`;
@@ -161,7 +184,7 @@ async function browse(path=""){
   $("#browser").innerHTML=h;
 }
 $("#browser").onclick=e=>{const a=e.target.closest("a");if(!a)return;e.preventDefault();
-  a.dataset.n!==undefined?$("#nm").classList.remove("hide"):a.dataset.d!==undefined?browse(a.dataset.d):openPdf(a.dataset.f)};
+  a.dataset.n!==undefined?($("#nm").classList.remove("hide"),pinAll()):a.dataset.d!==undefined?browse(a.dataset.d):openPdf(a.dataset.f)};
 
 // ---- new notebook
 $("#ncancel").onclick=()=>$("#nm").classList.add("hide");
@@ -185,7 +208,7 @@ const redrawAll=()=>views.forEach(redraw);
 
 async function openPdf(path){
   if(pending()&&!confirm("Discard unsaved ink?"))return;
-  cur=path;strokes=[];deletes=[];hist=[];eb=[];xmap.clear();editX=null;dirty();
+  cur=path;strokes=[];deletes=[];hist=[];xmap.clear();editX=null;dirty();
   $("#browser").classList.add("hide");$("#bar").classList.remove("hide");$("#flip").classList.remove("hide");
   $("#name").textContent=path.split("/").pop();
   fitBar();pinAll();
@@ -210,11 +233,58 @@ async function render(){
   }
   scrollTo(0,y*document.body.scrollHeight);updPg();fitBar();pinAll();
 }
+
+// ---------- drawing a stroke (smooth curves; live strokes may have per-point widths from pen pressure)
 function line(ctx,s,w,h){
-  ctx.save();ctx.lineCap=ctx.lineJoin="round";ctx.strokeStyle=s.color;ctx.globalAlpha=s.a;ctx.lineWidth=s.w*w;
+  const p=s.pts;if(!p.length)return;
+  ctx.save();ctx.lineCap=ctx.lineJoin="round";ctx.strokeStyle=s.color;ctx.globalAlpha=s.a;
   if(s.a<1)ctx.globalCompositeOperation="multiply";
-  ctx.beginPath();s.pts.forEach(([x,y],k)=>k?ctx.lineTo(x*w,y*h):ctx.moveTo(x*w,y*h));ctx.stroke();ctx.restore();
+  if(s.ws&&s.a>=1){
+    for(let k=1;k<p.length;k++){
+      ctx.lineWidth=(s.ws[k]+s.ws[k-1])/2*w;
+      ctx.beginPath();ctx.moveTo(p[k-1][0]*w,p[k-1][1]*h);ctx.lineTo(p[k][0]*w,p[k][1]*h);ctx.stroke();
+    }
+  }else{
+    ctx.lineWidth=s.w*w;ctx.beginPath();ctx.moveTo(p[0][0]*w,p[0][1]*h);
+    for(let k=1;k<p.length-1;k++)ctx.quadraticCurveTo(p[k][0]*w,p[k][1]*h,(p[k][0]+p[k+1][0])/2*w,(p[k][1]+p[k+1][1])/2*h);
+    if(p.length>1)ctx.lineTo(p[p.length-1][0]*w,p[p.length-1][1]*h);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
+const mkStroke=(tl,pg)=>({u:nu(),page:pg,color,w:P[tl],a:tl==="hl"?0.35:1,pts:[],ws:tl==="hl"?null:[],_l:null,_wf:1,_raw:null,_pr:0.5});
+function addPt(s,p,pr){
+  s._raw=p;s._pr=pr;
+  let q=p;
+  if(s._l){const k=1-0.93*P.smooth;q=[s._l[0]+(p[0]-s._l[0])*k,s._l[1]+(p[1]-s._l[1])*k]}   // stabiliser: pen follows the tip with a lag
+  s._l=q;
+  s.pts.push(q);
+  if(s.ws){
+    const f=clamp(1+P.press*(2*pr-1)*0.9,0.25,2.2);
+    s._wf=s.pts.length===1?f:s._wf+(f-s._wf)*0.35;
+    s.ws.push(s.w*s._wf);
+  }
+}
+function catchUp(s){                       // at pen-up let the smoothed line reach the real end point
+  if(!s._raw||!s._l)return;
+  for(let n=0;n<40;n++){const l=s._l;if(Math.hypot(s._raw[0]-l[0],s._raw[1]-l[1])<0.0006)break;addPt(s,s._raw,s._pr)}
+}
+function finalize(s){                      // PDF ink has one width per stroke, so split by width bands
+  const n=s.pts.length;if(n<2)return[];
+  const base={page:s.page,color:s.color,a:s.a};
+  if(!s.ws)return[{u:nu(),...base,w:s.w,pts:s.pts}];
+  const lg=Math.log(1.3),lv=s.ws.map(w=>Math.log(w/s.w)/lg);
+  let cl=Math.round(lv[0]),a=0;const runs=[];
+  for(let i=1;i<n;i++){
+    if(Math.abs(lv[i]-cl)>=1&&i-a>=2){runs.push([a,i-1]);a=i-1;cl=Math.round(lv[i])}
+  }
+  runs.push([a,n-1]);
+  return runs.map(([x,y])=>{
+    let sum=0;for(let k=x;k<=y;k++)sum+=s.ws[k];
+    return{u:nu(),...base,w:sum/(y-x+1),pts:s.pts.slice(x,y+1)};
+  });
+}
+
 // ---- text boxes
 function layout(ctx,s,w){
   ctx.font=fontStr(s,w);
@@ -234,7 +304,6 @@ function drawText(ctx,s,w,h){
   const lines=layout(ctx,s,w),lh=s.size*w*1.2;
   lines.forEach((l,k)=>{
     ctx.fillText(l,s.x*w,s.y*h+k*lh);
-    if(s.u_&&0){}
     if(s.ul&&l.trim())ctx.fillRect(s.x*w,s.y*h+k*lh+s.size*w*1.02,ctx.measureText(l).width,Math.max(1,s.size*w*0.06));
   });
   ctx.restore();
@@ -247,6 +316,12 @@ function hitText(v,[x,y]){
   return null;
 }
 function closeText(){if(editor)editor.commit()}
+function reveal(box){            // keep the text box between the toolbar and the on-screen keyboard
+  const vv=window.visualViewport,oy=vv?vv.offsetTop:0,vh=vv?vv.height:innerHeight;
+  const top=Math.max(oy,$("#bar").getBoundingClientRect().bottom)+36,bottom=oy+vh-12,r=box.getBoundingClientRect();
+  if(r.top<top)scrollBy(0,r.top-top);
+  else if(r.bottom>bottom)scrollBy(0,Math.min(r.bottom-bottom,r.top-top));
+}
 function openText(v,[x,y],ex){
   closeText();
   const wrap=v.ink.parentElement,cw=v.ink.clientWidth,ch=v.ink.clientHeight;
@@ -257,15 +332,15 @@ function openText(v,[x,y],ex){
   editX=ex&&ex.saved?ex.xref:null;
   const box=document.createElement("div");box.className="tbx";
   const ta=document.createElement("textarea");ta.className="tx";ta.value=it.text;
-  const hm=document.createElement("div"),hl=document.createElement("div"),hr=document.createElement("div");
-  hm.className="hd mv";hm.textContent="✥";hl.className="hd lf";hr.className="hd rt";
-  box.append(ta,hm,hl,hr);wrap.append(box);
+  const hm=document.createElement("div"),hl=document.createElement("div"),hr=document.createElement("div"),ok=document.createElement("div");
+  hm.className="hd mv";hm.textContent="✥";hl.className="hd lf";hr.className="hd rt";ok.className="hd ok";ok.textContent="✓ Done";
+  box.append(ta,hm,ok,hl,hr);wrap.append(box);
   const css=()=>{
     Object.assign(box.style,{left:it.x*cw+"px",top:it.y*ch+"px",width:it.wd*cw+"px"});
     Object.assign(ta.style,{fontSize:it.size*cw+"px",color:it.color,fontFamily:FAM[it.font],fontWeight:it.b?"700":"400",fontStyle:it.i?"italic":"normal",textDecoration:it.ul?"underline":"none"});
     ta.style.height="auto";ta.style.height=ta.scrollHeight+"px";
   };
-  ta.oninput=css;
+  ta.oninput=()=>{css();reveal(box)};
   const drag=(h,fn)=>h.addEventListener("pointerdown",e=>{
     e.preventDefault();e.stopPropagation();h.setPointerCapture(e.pointerId);
     const sx=e.clientX,sy=e.clientY,o={x:it.x,y:it.y,wd:it.wd};
@@ -278,7 +353,7 @@ function openText(v,[x,y],ex){
   drag(hl,(o,dx)=>{const r=o.x+o.wd,nx=clamp(o.x+dx,0,r-0.05);it.x=nx;it.wd=r-nx});
   if(ex){strokes=strokes.filter(s=>s!==ex);redraw(v)}
   drawing=true;
-  const t0=performance.now();let done=false;
+  let done=false;
   const commit=()=>{
     if(done)return;done=true;editor=null;editX=null;
     const text=ta.value.replace(/\s+$/,"");box.remove();drawing=false;
@@ -290,18 +365,17 @@ function openText(v,[x,y],ex){
       if(text){ns={u:nu(),kind:"text",page:v.i,color:it.color,size:it.size,x:it.x,y:it.y,wd:it.wd,text,font:it.font,b:it.b,i:it.i,ul:it.ul};strokes.push(ns)}
       if(ex&&ns)pushHist({k:"edit",old:{...ex},nw:ns});
       else if(ex)pushHist({k:"del",items:[{...ex}]});
-      else if(ns)pushHist({k:"add",s:ns});
+      else if(ns)pushHist({k:"add",items:[ns]});
     }
     redraw(v);dirty();schedSave();
   };
-  editor={commit,set(p){if("u" in p){p.ul=p.u;delete p.u}Object.assign(it,p);css();ta.focus()}};
-  ta.addEventListener("blur",e=>{
-    if(done)return;
-    if(e.relatedTarget&&$("#bar").contains(e.relatedTarget))return;
-    if(performance.now()-t0<300){setTimeout(()=>ta.focus(),0);return}
-    commit()});
-  ta.addEventListener("keydown",e=>{if(e.key==="Escape")ta.blur()});
+  ok.addEventListener("pointerdown",e=>e.preventDefault());
+  ok.addEventListener("click",commit);
+  editor={commit,reveal:()=>reveal(box),set(p){if("u" in p){p.ul=p.u;delete p.u}Object.assign(it,p);css();ta.focus()}};
+  // NOTE: no commit on blur — the box stays open when the keyboard hides or you scroll; close it with ✓ Done, a tap elsewhere, or by switching tool
+  ta.addEventListener("keydown",e=>{if(e.key==="Escape")commit()});
   css();ta.focus();
+  setTimeout(()=>{if(!done)reveal(box)},350);
 }
 function redraw(v){v.ctx.clearRect(0,0,v.w,v.h);strokes.filter(s=>s.page===v.i).forEach(s=>s.kind==="text"?drawText(v.ctx,s,v.w,v.h):line(v.ctx,s,v.w,v.h))}
 
@@ -320,36 +394,96 @@ function restore(o){
 function undo(){
   closeText();
   const h=hist.pop();if(!h)return toast("Nothing to undo");
-  if(h.k==="add")removeStroke(h.s.u);
+  if(h.k==="add")h.items.forEach(s=>removeStroke(s.u));
   else if(h.k==="del")h.items.forEach(restore);
+  else if(h.k==="er"){h.add.forEach(removeStroke);h.rem.forEach(restore)}
   else if(h.k==="edit"){removeStroke(h.nw.u);restore(h.old)}
   redrawAll();dirty();schedSave();
+}
+
+// ---- eraser (whole stroke, or pixel = cut out only the part under the eraser)
+function dseg(px,py,ax,ay,bx,by){
+  const dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-ax-t*dx,py-ay-t*dy);
+}
+function hitS(v,s,x,y,r){
+  if(s.kind==="text"){const b=textBox(v.ctx,s,v.w,v.h),px=x*v.w,py=y*v.h,m=r*v.w*0.5;
+    return px>=b.x-m&&px<=b.x+b.w+m&&py>=b.y-m&&py<=b.y+b.h+m}
+  const a=v.h/v.w,p=s.pts;
+  for(let k=1;k<p.length;k++)if(dseg(x,y*a,p[k-1][0],p[k-1][1]*a,p[k][0],p[k][1]*a)<r)return true;
+  return false;
+}
+function gRemove(s){
+  if(ger.add.has(s.u))ger.add.delete(s.u);else ger.rem.set(s.u,{...s});
+  removeStroke(s.u);
+}
+function cut(s,x,y,r,asp){            // split a stroke around (x,y); returns the remaining pieces, or null if nothing was removed
+  const step=r*0.5,pts=s.pts,out=[];
+  for(let k=0;k<pts.length;k++){
+    out.push(pts[k]);
+    if(k<pts.length-1){
+      const d=Math.hypot(pts[k+1][0]-pts[k][0],(pts[k+1][1]-pts[k][1])*asp),n=Math.ceil(d/step);
+      for(let j=1;j<n;j++){const t=j/n;out.push([pts[k][0]+(pts[k+1][0]-pts[k][0])*t,pts[k][1]+(pts[k+1][1]-pts[k][1])*t])}
+    }
+  }
+  const runs=[];let c=[],removed=false;
+  for(const q of out){
+    if(Math.hypot(q[0]-x,(q[1]-y)*asp)<r){removed=true;if(c.length>1)runs.push(c);c=[]}else c.push(q);
+  }
+  if(c.length>1)runs.push(c);
+  return removed?runs:null;
+}
+function eraseAt(v,[x,y]){
+  const r=P.er,asp=v.h/v.w;let ch=false;
+  for(const s of strokes.slice()){
+    if(s.page!==v.i||!hitS(v,s,x,y,r))continue;
+    if(s.kind==="text"||P.emode==="stroke"){gRemove(s);ch=true;continue}
+    const runs=cut(s,x,y,r,asp);if(!runs)continue;
+    gRemove(s);
+    runs.forEach(p=>{const n={u:nu(),page:s.page,color:s.color,w:s.w,a:s.a,pts:p};strokes.push(n);ger.add.add(n.u)});
+    ch=true;
+  }
+  if(ch){redraw(v);dirty()}
+}
+function eraseMove(v,p){              // interpolate so fast strokes don't skip anything
+  const l=elast;elast=p;
+  if(!l)return eraseAt(v,p);
+  const d=Math.hypot(p[0]-l[0],(p[1]-l[1])*v.h/v.w),n=Math.max(1,Math.ceil(d/(P.er*0.5)));
+  for(let k=1;k<=n;k++)eraseAt(v,[l[0]+(p[0]-l[0])*k/n,l[1]+(p[1]-l[1])*k/n]);
 }
 
 function attach(v){
   const el=v.ink;let s=null,tx0=null;
   const pos=e=>{const r=el.getBoundingClientRect();return[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]};
+  const pr=e=>e.pressure>0?e.pressure:0.5;
   const block=e=>{if(e.touches[0]&&e.touches[0].touchType==="stylus")e.preventDefault()};
   el.addEventListener("touchstart",block,{passive:false});el.addEventListener("touchmove",block,{passive:false});
   el.addEventListener("touchend",e=>{if(tool==="tx")e.preventDefault()},{passive:false});
   el.addEventListener("pointerdown",e=>{
-    if(tool==="tx"){closeText();tx0={x:e.clientX,y:e.clientY};if(e.pointerType!=="touch")e.preventDefault();return}
+    if(tool==="tx"){tx0={x:e.clientX,y:e.clientY};if(e.pointerType!=="touch")e.preventDefault();return}   // a text box stays open while you scroll
     if(e.pointerType==="touch")return;
     closeText();
     el.setPointerCapture(e.pointerId);drawing=true;clearTimeout(saveTimer);
-    if(tool==="er"){eb=[];eraseAt(v,pos(e));s="erase";return}
-    s={u:nu(),page:v.i,color:color,w:WS[tool][sz[tool]],a:tool==="hl"?0.35:1,pts:[pos(e)]};strokes.push(s);
+    if(tool==="er"){ger={rem:new Map(),add:new Set()};elast=null;eraseMove(v,pos(e));s="erase";return}
+    s=mkStroke(tool,v.i);addPt(s,pos(e),pr(e));strokes.push(s);
   });
   el.addEventListener("pointermove",e=>{
     if(!s)return;
-    if(s==="erase"){eraseAt(v,pos(e));return}
-    for(const ev of(e.getCoalescedEvents?e.getCoalescedEvents():[e]))s.pts.push(pos(ev));
+    if(s==="erase"){eraseMove(v,pos(e));return}
+    for(const ev of(e.getCoalescedEvents?e.getCoalescedEvents():[e]))addPt(s,pos(ev),pr(ev));
     redraw(v);
   });
   const end=()=>{if(!s)return;
-    if(s==="erase"){if(eb.length)pushHist({k:"del",items:eb});eb=[]}
-    else if(s.pts.length<2){const d=s;strokes=strokes.filter(t=>t!==d)}
-    else pushHist({k:"add",s});
+    if(s==="erase"){
+      if(ger&&(ger.rem.size||ger.add.size))pushHist({k:"er",rem:[...ger.rem.values()],add:[...ger.add]});
+      ger=null;elast=null;
+    }else{
+      const d=s;catchUp(d);
+      strokes=strokes.filter(t=>t!==d);
+      const parts=finalize(d);
+      parts.forEach(p=>strokes.push(p));
+      if(parts.length)pushHist({k:"add",items:parts});
+    }
     s=null;drawing=false;redraw(v);dirty();schedSave()};
   el.addEventListener("pointerup",e=>{
     if(tool==="tx"&&tx0){const m=Math.hypot(e.clientX-tx0.x,e.clientY-tx0.y);tx0=null;
@@ -358,39 +492,40 @@ function attach(v){
   });
   el.addEventListener("pointercancel",()=>{tx0=null;end()});
 }
-function hitS(v,s,x,y,r){
-  if(s.kind==="text"){const b=textBox(v.ctx,s,v.w,v.h),px=x*v.w,py=y*v.h,m=r*v.w*0.5;
-    return px>=b.x-m&&px<=b.x+b.w+m&&py>=b.y-m&&py<=b.y+b.h+m}
-  return s.pts.some(([px,py])=>Math.hypot(px-x,(py-y)*v.h/v.w)<r);
-}
-function eraseAt(v,[x,y]){
-  const r=ER[sz.er],hit=strokes.filter(s=>s.page===v.i&&hitS(v,s,x,y,r));
-  if(!hit.length)return;
-  hit.forEach(s=>{eb.push({...s});removeStroke(s.u)});
-  redraw(v);dirty();
-}
 
 // ---- tools / colours / sizes
-const refreshSz=()=>document.querySelectorAll(".sz").forEach(b=>b.classList.toggle("on",+b.dataset.i===sz[tool]));
 function pick(c){color=c;document.querySelectorAll(".sw").forEach(b=>b.classList.toggle("on",b.dataset.c===c));if(editor)editor.set({color:c})}
 function setTool(t){
   if(t!=="tx")closeText();
   tool=t;
   $("#tbar").classList.toggle("hide",t!=="tx");
+  $("#ebar").classList.toggle("hide",t!=="er");
   const L={er:"Eraser",hl:"Marker",tx:"Text",pen:"Pen"},f=$("#flip");
   f.textContent=L[t]||"Pen";f.dataset.t=t;
   ["pen","hl","tx","er"].forEach(k=>$("#"+k).classList.toggle("on",k===t));
   if(t==="hl"&&color==="#111111")pick("#ffe600");
   if(t==="tx"&&color==="#ffe600")pick("#111111");
-  refreshSz();fitBar();
+  syncPP();fitBar();pinAll();
 }
 $("#pen").onclick=()=>setTool("pen");$("#hl").onclick=()=>setTool("hl");$("#tx").onclick=()=>setTool("tx");$("#er").onclick=()=>setTool("er");
 document.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{pick(b.dataset.c);if(tool==="er")setTool("pen")});
 $("#cc").oninput=e=>{pick(e.target.value);if(tool==="er")setTool("pen")};
-document.querySelectorAll(".sz").forEach(b=>b.onclick=()=>{
-  sz[tool]=+b.dataset.i;refreshSz();
-  if(tool==="tx")tset({size:TS[+b.dataset.i]});
-});
+
+// eraser mode
+function syncEm(){$("#em0").classList.toggle("on",P.emode==="stroke");$("#em1").classList.toggle("on",P.emode==="pixel")}
+$("#em0").onclick=()=>{P.emode="stroke";savePrefs();syncEm()};
+$("#em1").onclick=()=>{P.emode="pixel";savePrefs();syncEm()};
+syncEm();
+
+// A- / A+
+const key=()=>tool==="er"?"er":tool==="hl"?"hl":"pen";
+function bump(d){
+  if(tool==="tx"){const pt=clamp(Math.round(txf.size*PW)+d*2,4,300);tset({size:pt/PW});toast("Font "+pt+" pt");return}
+  const k=key(),r=RG[k];P[k]=clamp(P[k]*(d>0?1.25:0.8),r[0],r[1]);savePrefs();syncPP();
+  toast("Size "+toPct(k)+"%");
+}
+$("#szm").onclick=()=>bump(-1);$("#szp").onclick=()=>bump(1);
+
 // ---- text toolbar
 function syncTb(){$("#tfont").value=txf.font;$("#tsize").value=Math.round(txf.size*PW);
   ["b","i","u"].forEach(k=>$("#t"+k).classList.toggle("on",!!txf[k]))}
@@ -403,6 +538,45 @@ $("#tu").onclick=()=>tset({u:txf.u?0:1});
 $("#bar").addEventListener("pointerdown",e=>{if(editor&&e.target.closest("button"))e.preventDefault()});
 syncTb();
 
+// ---- pen settings panel (+ practice pad)
+const toPct=k=>{const[a,b]=RG[k];return Math.round(Math.log(P[k]/a)/Math.log(b/a)*100)};
+function syncPP(){
+  const k=key();
+  $("#pSize").value=toPct(k);
+  $("#lSize").textContent=k==="er"?"Eraser size":k==="hl"?"Highlighter thickness":"Pen thickness";
+  $("#pSm").value=Math.round(P.smooth*100);$("#pPr").value=Math.round(P.press*100);
+}
+$("#pSize").oninput=e=>{const k=key(),[a,b]=RG[k];P[k]=a*Math.pow(b/a,e.target.value/100);savePrefs()};
+$("#pSm").oninput=e=>{P.smooth=e.target.value/100;savePrefs()};
+$("#pPr").oninput=e=>{P.press=e.target.value/100;savePrefs()};
+$("#prst").onclick=()=>{Object.assign(P,{pen:PD.pen,hl:PD.hl,er:PD.er,smooth:PD.smooth,press:PD.press});savePrefs();syncPP()};
+$("#cfg").onclick=()=>{
+  const h=$("#pp").classList.toggle("hide");
+  if(!h){syncPP();pinAll();padSize();padRedraw()}
+};
+$("#ppx").onclick=()=>$("#pp").classList.add("hide");
+const pad=$("#pad"),pctx=pad.getContext("2d");let padS=[],padCur=null;
+function padSize(){const d=devicePixelRatio||1;pad.width=Math.max(1,pad.clientWidth*d);pad.height=Math.max(1,pad.clientHeight*d)}
+function padRedraw(){
+  pctx.clearRect(0,0,pad.width,pad.height);
+  const k=(views.length?views[0].ink.clientWidth:600)*(devicePixelRatio||1)/pad.width;
+  padS.concat(padCur?[padCur]:[]).forEach(s=>line(pctx,{...s,w:s.w*k,ws:s.ws&&s.ws.map(x=>x*k)},pad.width,pad.height));
+}
+const padPos=e=>{const r=pad.getBoundingClientRect();return[(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height]};
+pad.addEventListener("pointerdown",e=>{
+  e.preventDefault();pad.setPointerCapture(e.pointerId);
+  padCur=mkStroke(tool==="hl"?"hl":"pen",0);addPt(padCur,padPos(e),e.pressure>0?e.pressure:0.5);padRedraw();
+});
+pad.addEventListener("pointermove",e=>{
+  if(!padCur)return;
+  for(const ev of(e.getCoalescedEvents?e.getCoalescedEvents():[e]))addPt(padCur,padPos(ev),ev.pressure>0?ev.pressure:0.5);
+  padRedraw();
+});
+const padEnd=()=>{if(!padCur)return;catchUp(padCur);padS.push(padCur);padCur=null;padRedraw()};
+pad.addEventListener("pointerup",padEnd);pad.addEventListener("pointercancel",padEnd);
+$("#pclr").onclick=()=>{padS=[];padRedraw()};
+
+// ---- undo / zoom / files
 $("#undo").onclick=undo;
 addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"&&!(e.target.matches&&e.target.matches("textarea,input"))){e.preventDefault();undo()}});
 $("#zi").onclick=()=>{zoom=Math.min(3,zoom+.25);render()};$("#zo").onclick=()=>{zoom=Math.max(.5,zoom-.25);render()};
@@ -441,8 +615,27 @@ async function save(manual){
   if(pending())schedSave();
 }
 $("#save").onclick=()=>save(true);
+
+// ---- round pen/eraser button: drag it anywhere, tap it to switch
 let flipPrev="pen";
-$("#flip").onclick=()=>{if(tool==="er")setTool(flipPrev);else{flipPrev=tool;setTool("er")}};
+const flipTool=()=>{if(tool==="er")setTool(flipPrev);else{flipPrev=tool;setTool("er")}};
+(()=>{
+  const f=$("#flip");let d=null;
+  f.addEventListener("mousedown",e=>e.preventDefault());           // never steal focus from an open text box
+  f.addEventListener("pointerdown",e=>{e.preventDefault();f.setPointerCapture(e.pointerId);d={sx:e.clientX,sy:e.clientY,m:false}});
+  f.addEventListener("pointermove",e=>{
+    if(!d)return;
+    if(!d.m&&Math.hypot(e.clientX-d.sx,e.clientY-d.sy)>8)d.m=true;
+    if(d.m){
+      const vv=window.visualViewport,sc=vv?vv.scale:1,ox=vv?vv.offsetLeft:0,oy=vv?vv.offsetTop:0,
+            vw=vv?vv.width:innerWidth,vh=vv?vv.height:innerHeight,fw=64/sc;
+      fpos.x=clamp((e.clientX-ox-fw/2)/(vw-fw),0,1);fpos.y=clamp((e.clientY-oy-fw/2)/(vh-fw),0,1);
+      pinAll();
+    }
+  });
+  f.addEventListener("pointerup",()=>{if(!d)return;const m=d.m;d=null;if(m)savePrefs();else flipTool()});
+  f.addEventListener("pointercancel",()=>{d=null});
+})();
 
 // ---- page indicator / navigation
 let rq=0;
@@ -512,8 +705,6 @@ $("#grid").onclick=async e=>{
   else if(a==="A")await pageOp({action:"add",index:i,template:$("#ptpl").value});
   else if(a==="D"&&confirm("Delete page "+(i+1)+"? This can't be undone."))await pageOp({action:"delete",index:i});
 };
-// new notebook popup opens via the browser; make sure popups are positioned
-$("#browser").addEventListener("click",()=>pinAll());
 
 // pick up ink saved from another device — never while you're drawing/saving, and never overwrites unsaved work
 setInterval(async()=>{
