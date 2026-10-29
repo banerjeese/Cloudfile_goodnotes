@@ -31,9 +31,9 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
 .row .ren{border:1px solid #bbc;background:#fff;border-radius:8px;padding:8px 10px;min-height:38px;font:inherit;margin-right:4px;white-space:nowrap}
 #pages{display:flex;flex-direction:column;gap:14px;padding:14px 8px 90px}
 .pg{position:relative;background:#fff;box-shadow:0 1px 4px #0004;margin:0 auto;flex:none}
-.pg.dk{background:#141414}
+.pg.dk{background:#000}
 .pg canvas{display:block}
-.pg.dk canvas.pdf{filter:invert(.92) hue-rotate(180deg)}
+.pg.dk canvas.pdf{filter:invert(1)}
 .pg .ink{position:absolute;left:0;top:0;touch-action:pan-x pan-y pinch-zoom}
 .pg .ink.live{pointer-events:none}
 .tbx{position:absolute;z-index:2;outline:1px dashed var(--acc);background:rgba(255,255,255,.7)}
@@ -100,12 +100,13 @@ html,body{margin:0;min-height:100%;background:var(--bg);font:15px/1.4 -apple-sys
   <button id="szm" aria-label="Smaller">A−</button><button id="szp" aria-label="Larger">A+</button>
   <button id="cfg">⚙ Pen</button>
   <button id="undo">Undo</button>
-  <button id="dkAll" title="Dark mode for every page">🌙 All</button>
-  <button id="dkPg" title="Dark mode for the current page only">🌙 Page</button>
+  <button id="dkAll" title="Dark mode for every page (saved in the PDF)">🌙 All</button>
+  <button id="dkPg" title="Dark mode for the current page only (saved in the PDF)">🌙 Page</button>
   <button id="zo" aria-label="Zoom out">−</button><button id="zi" aria-label="Zoom in">+</button>
   <button id="pgs">Pages</button>
   <button id="qadd" title="Add a page after the current one">+ Page</button>
   <button id="ren">✏ Rename</button>
+  <button id="dl" title="Download as a normal PDF">⬇ Download</button>
   <button id="save">Save to server</button>
   <span id="name"></span>
 </div>
@@ -158,18 +159,15 @@ const MAXPIX=4.5e6;                    // max pixels per page canvas (lower = le
 
 // ---------- preferences (kept on this device)
 const RG={pen:[0.0008,0.012],hl:[0.005,0.05],er:[0.008,0.09]};
-const P={pen:0.0022,hl:0.012,er:0.02,smooth:0.35,press:0.55,emode:"stroke",dark:false};
+const P={pen:0.0022,hl:0.012,er:0.02,smooth:0.35,press:0.55,emode:"stroke"};
 const PD={...P};
 let fpos={x:0.96,y:0.88};
 try{const q=JSON.parse(localStorage.getItem("pdfink.prefs")||"{}");Object.assign(P,q.P||{});Object.assign(fpos,q.f||{})}catch(e){}
 const savePrefs=()=>{try{localStorage.setItem("pdfink.prefs",JSON.stringify({P,f:fpos}))}catch(e){}};
 
-// ---------- dark mode (view only: the PDF file is never changed)
-let darkAll=!!P.dark;const darkPg=new Map();
-const isDark=i=>darkPg.has(i)?darkPg.get(i):darkAll;
-const dpKey=()=>"pdfink.dp:"+cur;
-function loadDP(){darkPg.clear();try{JSON.parse(localStorage.getItem(dpKey())||"[]").forEach(([i,b])=>darkPg.set(i,b))}catch(e){}}
-function saveDP(){try{localStorage.setItem(dpKey(),JSON.stringify([...darkPg]))}catch(e){}}
+// ---------- dark mode: stored INSIDE the PDF (the server adds/removes an invert layer and recolours the ink)
+let darkSet=new Set();                  // page indexes that are dark in the file
+const isDark=i=>darkSet.has(i);
 const dcache=new Map();
 function dcol(c){                       // ink colour as shown on a dark page: dark colours become light, hue kept
   let r=dcache.get(c);if(r)return r;
@@ -183,9 +181,30 @@ function dcol(c){                       // ink colour as shown on a dark page: d
   dcache.set(c,r);return r;
 }
 function applyDark(v){if(!v)return;v.wrap.classList.toggle("dk",isDark(v.i));redraw(v)}
-function syncDk(){$("#dkAll").classList.toggle("on",darkAll);document.body.classList.toggle("dk",darkAll);if(views.length)$("#dkPg").classList.toggle("on",isDark(curPage()))}
-$("#dkAll").onclick=()=>{darkAll=!darkAll;P.dark=darkAll;darkPg.clear();savePrefs();saveDP();views.forEach(applyDark);syncDk()};
-$("#dkPg").onclick=()=>{if(!views.length)return;const i=curPage();darkPg.set(i,!isDark(i));saveDP();applyDark(views[i]);syncDk()};
+function syncDk(){
+  const all=views.length>0&&darkSet.size>=views.length;
+  $("#dkAll").classList.toggle("on",all);document.body.classList.toggle("dk",all);
+  if(views.length)$("#dkPg").classList.toggle("on",isDark(curPage()));
+}
+async function setDark(pages,dark){
+  if(!cur||!views.length)return;
+  if(busy||pgBusy){toast("Busy — try again in a moment");return}
+  closeText();
+  if(!await flush()){toast("Couldn't save your ink first — try again");return}
+  busy=true;
+  try{
+    toast("Applying dark mode to the PDF…");
+    const r=await fetch("/api/dark?path="+encodeURIComponent(cur),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pages,dark})});
+    if(!r.ok)throw new Error(r.status);
+    hist=[];                              // item ids may have changed
+    strokes=merge(await pull());          // pull() refreshes darkSet from the file
+    views.forEach(applyDark);syncDk();
+    toast(dark?"Dark mode saved in the PDF":"Light mode saved in the PDF");
+  }catch(e){toast("Dark mode failed: "+e.message)}
+  finally{busy=false}
+}
+$("#dkAll").onclick=()=>{if(!views.length)return;const all=darkSet.size>=views.length;setDark(views.map(v=>v.i),!all)};
+$("#dkPg").onclick=()=>{if(!views.length)return;const i=curPage();setDark([i],!isDark(i))};
 
 const TS=[0.014,0.018,0.024,0.032,0.045];
 const FAM={helv:"Helvetica,Arial,sans-serif",tiro:'"Times New Roman",Times,serif',cour:'"Courier New",Courier,monospace'};
@@ -219,19 +238,33 @@ addEventListener("resize",pinSoon);
 new ResizeObserver(fitBar).observe($("#bar"));
 
 let toastT=0;
-const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");pinAll();clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2200)};
+const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");pinAll();clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600)};
+
+// ---------- download
+function downloadFile(path){
+  const a=document.createElement("a");
+  a.href="/api/download?path="+encodeURIComponent(path)+"&t="+Date.now();
+  a.download=path.split("/").pop();
+  document.body.append(a);a.click();a.remove();
+}
+$("#dl").onclick=async()=>{
+  if(!cur)return;
+  if(!await flush()){toast("Couldn't save your ink first — try again");return}
+  toast("Preparing your PDF…");downloadFile(cur);
+};
 
 // ---------- file browser + rename
 async function browse(path=""){
   browsePath=path;$("#pm").classList.add("hide");$("#pp").classList.add("hide");
   views.forEach(v=>deact(v,true));views=[];if(io){io.disconnect();io=null}
   $("#bar").classList.add("hide");$("#flip").classList.add("hide");$("#pages").innerHTML="";$("#browser").classList.remove("hide");fitBar();
+  document.body.classList.remove("dk");
   const items=await (await fetch("/api/list?path="+encodeURIComponent(path))).json();
   let h=`<h2>/${esc(path)}</h2><a href="#" class="new" data-n="1">➕ New notebook here</a>`;
   if(path){const up=path.split("/").slice(0,-1).join("/");h+=`<a href="#" data-d="${esc(up)}">⬆ Up</a>`}
   for(const i of items){
     if(i.dir)h+=`<a href="#" data-d="${esc(i.path)}">📁 ${esc(i.name)}</a>`;
-    else h+=`<div class="row"><a href="#" data-f="${esc(i.path)}">📄 ${esc(i.name)}</a><button class="ren" data-p="${esc(i.path)}">✏ Rename</button></div>`;
+    else h+=`<div class="row"><a href="#" data-f="${esc(i.path)}">📄 ${esc(i.name)}</a><button class="ren" data-dl="${esc(i.path)}" title="Download">⬇</button><button class="ren" data-p="${esc(i.path)}">✏ Rename</button></div>`;
   }
   if(!items.length)h+="<p style='padding:12px'>No PDFs in this folder.</p>";
   $("#browser").innerHTML=h;
@@ -250,7 +283,9 @@ async function renameFile(path){
   }catch(e){toast("Rename failed: "+e.message);return null}
 }
 $("#browser").onclick=async e=>{
-  const rb=e.target.closest(".ren");
+  const db=e.target.closest("[data-dl]");
+  if(db){e.preventDefault();toast("Preparing your PDF…");downloadFile(db.dataset.dl);return}
+  const rb=e.target.closest("[data-p]");
   if(rb){e.preventDefault();if(await renameFile(rb.dataset.p))browse(browsePath);return}
   const a=e.target.closest("a");if(!a)return;e.preventDefault();
   a.dataset.n!==undefined?($("#nm").classList.remove("hide"),pinAll()):a.dataset.d!==undefined?browse(a.dataset.d):openPdf(a.dataset.f)};
@@ -258,10 +293,7 @@ $("#ren").onclick=async()=>{
   if(!cur)return;
   if(!await flush()){toast("Couldn't save your ink first — try again");return}
   const np=await renameFile(cur);
-  if(np){
-    try{const o=localStorage.getItem(dpKey());cur=np;if(o)localStorage.setItem(dpKey(),o)}catch(e){cur=np}
-    $("#name").textContent=np.split("/").pop();
-  }
+  if(np){cur=np;$("#name").textContent=np.split("/").pop()}
 };
 
 // ---- new notebook
@@ -281,6 +313,7 @@ const blobToURL=b=>new Promise((res,rej)=>{const f=new FileReader();f.onload=()=
 async function pull(){
   const j=await (await fetch("/api/strokes?path="+encodeURIComponent(cur)+"&t="+Date.now())).json();
   lastM=j.m;
+  darkSet=new Set(j.dark||[]);
   const out=j.strokes.map(s=>{let u=xmap.get(s.xref);if(!u){u=nu();xmap.set(s.xref,u)}return{...s,saved:true,u}});
   await Promise.all(out.filter(s=>s.kind==="img").map(async s=>{
     if(!imgData.has(s.u)){
@@ -297,8 +330,7 @@ const redrawAll=()=>views.forEach(redraw);
 
 async function openPdf(path){
   if(pending()&&!confirm("Discard unsaved ink?"))return;
-  cur=path;strokes=[];deletes=[];hist=[];xmap.clear();imgData.clear();editX=null;dirty();
-  darkAll=!!P.dark;loadDP();syncDk();
+  cur=path;strokes=[];deletes=[];hist=[];xmap.clear();imgData.clear();editX=null;darkSet=new Set();dirty();
   $("#browser").classList.add("hide");$("#bar").classList.remove("hide");$("#flip").classList.remove("hide");
   $("#name").textContent=path.split("/").pop();
   fitBar();pinAll();
@@ -307,7 +339,7 @@ async function openPdf(path){
   await render();
 }
 
-// ---------- pages are only drawn while they're near the screen (this is what keeps RAM/CPU low)
+// ---------- pages are only drawn while they're near the screen (keeps RAM/CPU low)
 async function render(){
   closeText();const tok=++rtok;
   if(io){io.disconnect();io=null}
@@ -327,7 +359,7 @@ async function render(){
   });
   io=new IntersectionObserver(es=>es.forEach(en=>{const v=map.get(en.target);if(!v)return;en.isIntersecting?act(v):deact(v)}),{rootMargin:"200% 0px"});
   views.forEach(v=>io.observe(v.wrap));
-  scrollTo(0,y*document.body.scrollHeight);updPg();fitBar();pinAll();
+  scrollTo(0,y*document.body.scrollHeight);updPg();fitBar();pinAll();syncDk();
 }
 function act(v){
   if(v.on)return;v.on=true;
@@ -346,7 +378,7 @@ function act(v){
 }
 function deact(v,force){
   if(!v.on)return;
-  if(!force&&((editor&&editor.v===v)||drawV===v))return;      // never free a page you're working on
+  if(!force&&((editor&&editor.v===v)||drawV===v))return;
   v.on=false;
   if(v.task){try{v.task.cancel()}catch(e){}v.task=null}
   if(v.live){v.live.width=v.live.height=0;v.live.remove();v.live=null;v.lctx=null}
@@ -380,7 +412,7 @@ function addPt(s,p,pr){
   if(s._l){const k=1-0.93*P.smooth;q=[s._l[0]+(p[0]-s._l[0])*k,s._l[1]+(p[1]-s._l[1])*k]}
   s._l=q;
   const last=s.pts[s.pts.length-1];
-  if(last&&Math.abs(q[0]-last[0])+Math.abs(q[1]-last[1])<0.0004)return;      // skip near-duplicate points
+  if(last&&Math.abs(q[0]-last[0])+Math.abs(q[1]-last[1])<0.0004)return;
   s.pts.push(q);
   if(s.ws){
     const f=clamp(1+P.press*(2*pr-1)*0.9,0.25,2.2);
@@ -392,7 +424,7 @@ function catchUp(s){
   if(!s._raw||!s._l)return;
   for(let n=0;n<40;n++){const l=s._l;if(Math.hypot(s._raw[0]-l[0],s._raw[1]-l[1])<0.0006)break;addPt(s,s._raw,s._pr)}
 }
-function livePen(v,s){                // draw only the newly added part of the line
+function livePen(v,s){
   const x=v.ctx,p=s.pts,w=v.w,h=v.h,col=isDark(v.i)?dcol(s.color):s.color;
   x.save();x.lineCap=x.lineJoin="round";x.strokeStyle=col;x.fillStyle=col;
   for(let k=s._d;k<p.length;k++){
@@ -401,7 +433,7 @@ function livePen(v,s){                // draw only the newly added part of the l
   }
   s._d=p.length;x.restore();
 }
-function liveHL(v,s){                 // highlighter: one translucent layer on top, redrawn for this stroke only
+function liveHL(v,s){
   if(!v.live){
     const c=document.createElement("canvas");c.className="ink live";c.width=v.w;c.height=v.h;
     c.style.width=v.cw+"px";c.style.height=v.chh+"px";c.style.opacity=s.a;
@@ -662,7 +694,7 @@ function hitS(v,s,x,y,r){
   if(s.kind==="text"){const b=textBox(v.ctx,s,v.w,v.h),px=x*v.w,py=y*v.h,m=r*v.w*0.5;
     return px>=b.x-m&&px<=b.x+b.w+m&&py>=b.y-m&&py<=b.y+b.h+m}
   const a=v.h/v.w,p=s.pts,bb=bbox(s);
-  if(x<bb[0]-r||x>bb[2]+r||y*a<bb[1]*a-r||y*a>bb[3]*a+r)return false;      // quick reject
+  if(x<bb[0]-r||x>bb[2]+r||y*a<bb[1]*a-r||y*a>bb[3]*a+r)return false;
   for(let k=1;k<p.length;k++)if(dseg(x,y*a,p[k-1][0],p[k-1][1]*a,p[k][0],p[k][1]*a)<r)return true;
   return false;
 }
@@ -688,7 +720,7 @@ function cut(s,x,y,r,asp){
 }
 function eraseAt(v,[x,y]){
   const r=P.er,asp=v.h/v.w;let ch=false;
-  const hits=strokes.filter(s=>s.page===v.i&&s.kind!=="img"&&hitS(v,s,x,y,r));    // pictures are never erased (use 🗑 in the Image tool)
+  const hits=strokes.filter(s=>s.page===v.i&&s.kind!=="img"&&hitS(v,s,x,y,r));
   for(const s of hits){
     if(s.kind==="text"||P.emode==="stroke"){gRemove(s);ch=true;continue}
     const runs=cut(s,x,y,r,asp);if(!runs)continue;
@@ -885,13 +917,13 @@ async function save(manual){
     nw.forEach((s,k)=>{
       const x=xr[k];
       if(x==null){failed.add(s.u);return}
-      if(x===-1){flat=true;failed.add(s.u);return}      // picture was merged into the page itself
+      if(x===-1){flat=true;failed.add(s.u);return}
       const c=strokes.find(t=>t.u===s.u);
       if(c){c.saved=true;c.xref=x;xmap.set(x,s.u)}
-      else deletes.push(x);                              // removed while saving: delete the server copy too
+      else deletes.push(x);
     });
     if(failed.size)strokes=strokes.filter(s=>!failed.has(s.u));
-    if(j.m)lastM=j.m;                                     // no re-download after saving
+    if(j.m)lastM=j.m;
     if(flat){
       pdf=await pdfjsLib.getDocument("/api/file?path="+encodeURIComponent(cur)+"&t="+Date.now()).promise;
       await render();
@@ -962,7 +994,7 @@ async function pageOp(body){
     if(!r.ok)throw new Error(r.status);
     const j=await r.json();
     pdf=await pdfjsLib.getDocument("/api/file?path="+encodeURIComponent(cur)+"&t="+Date.now()).promise;
-    xmap.clear();imgData.clear();hist=[];strokes=[];darkPg.clear();saveDP();
+    xmap.clear();imgData.clear();hist=[];strokes=[];
     strokes=merge(await pull());lastM=j.m;
     await render();
     if(!$("#pm").classList.contains("hide"))await thumbs();
@@ -1008,7 +1040,7 @@ $("#grid").onclick=async e=>{
   else if(a==="D"&&confirm("Delete page "+(i+1)+"? This can't be undone."))await pageOp({action:"delete",index:i});
 };
 
-// pick up ink saved from another device
+// pick up changes saved from another device
 setInterval(async()=>{
   if(!cur||!pdf||busy||drawing||pending()||document.hidden)return;
   try{
@@ -1016,9 +1048,9 @@ setInterval(async()=>{
     if(j.m===lastM)return;
     const old=lastM,p=await pull();
     if(busy||drawing||pending()){lastM=old;return}
-    strokes=merge(p);redrawAll();
+    strokes=merge(p);views.forEach(applyDark);syncDk();
   }catch(e){}
 },4000);
 addEventListener("beforeunload",e=>{if(pending()){e.preventDefault();e.returnValue=""}});
-syncDk();pinAll();browse("");
+pinAll();browse("");
 </script></body></html>
