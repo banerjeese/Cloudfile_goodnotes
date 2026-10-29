@@ -2,8 +2,7 @@
 Run:  pip install -r requirements.txt
       APP_PASSWORD=secret ROOT=~/remote_storage python app.py
 """
-import os, re, shutil, tempfile
-from functools import wraps
+import os, re, shutil, tempfile, base64
 import fitz  # PyMuPDF
 from flask import Flask, request, jsonify, send_file, send_from_directory, abort, Response
 
@@ -58,9 +57,34 @@ def api_file():
     r.headers["Cache-Control"] = "no-store"
     return r
 
+# ---------------------------------------------------------------- rename
+@app.route("/api/rename", methods=["POST"])
+def api_rename():
+    b = request.get_json(force=True) or {}
+    p = safe(b.get("path", ""))
+    if not p.lower().endswith(".pdf") or not os.path.isfile(p):
+        abort(404)
+    name = re.sub(r'[\\/:*?"<>|\x00-\x1f]', "", str(b.get("name", "")).strip()).strip(". ")
+    if name.lower().endswith(".pdf"):
+        name = name[:-4].strip(". ")
+    name = name[:100]
+    if not name:
+        return jsonify(error="Name can't be empty"), 400
+    new = os.path.join(os.path.dirname(p), name + ".pdf")
+    if new == p:
+        return jsonify(ok=True, path=os.path.relpath(p, ROOT))
+    if os.path.exists(new):
+        return jsonify(error="A file with that name already exists"), 409
+    os.rename(p, new)
+    bak = p + ".orig.bak"             # keep the safety backup next to the renamed file
+    if os.path.exists(bak) and not os.path.exists(new + ".orig.bak"):
+        os.rename(bak, new + ".orig.bak")
+    return jsonify(ok=True, path=os.path.relpath(new, ROOT))
+
+# ---------------------------------------------------------------- read ink / text / pictures
 @app.route("/api/strokes")
 def api_strokes():
-    """Existing ink + text annotations in the PDF, as editable items (normalised 0-1 coords)."""
+    """Existing ink + text + pictures in the PDF, as editable items (normalised 0-1 coords)."""
     p = safe(request.args.get("path", ""))
     if not p.lower().endswith(".pdf") or not os.path.isfile(p):
         abort(404)
@@ -68,8 +92,17 @@ def api_strokes():
     doc = fitz.open(p)
     for pi, pg in enumerate(doc):
         r = pg.rect
-        for an in pg.annots(types=[fitz.PDF_ANNOT_INK, fitz.PDF_ANNOT_FREE_TEXT]) or []:
-            if an.type[0] == fitz.PDF_ANNOT_FREE_TEXT:          # text box
+        for an in pg.annots(types=[fitz.PDF_ANNOT_INK, fitz.PDF_ANNOT_FREE_TEXT, fitz.PDF_ANNOT_STAMP]) or []:
+            t = an.type[0]
+            if t == fitz.PDF_ANNOT_STAMP:                        # picture placed by this app
+                if not ((an.info or {}).get("subject") or "").startswith("pdfink-img"):
+                    continue
+                q = (fitz.Rect(an.rect) * pg.rotation_matrix).normalize()
+                out.append({"kind": "img", "page": pi, "xref": an.xref,
+                            "x": q.x0 / r.width, "y": q.y0 / r.height,
+                            "wd": q.width / r.width, "ht": q.height / r.height})
+                continue
+            if t == fitz.PDF_ANNOT_FREE_TEXT:                    # text box
                 info = an.info or {}
                 txt = info.get("content", "") or ""
                 if not txt.strip():
@@ -103,6 +136,42 @@ def api_strokes():
     doc.close()
     return jsonify(m=os.path.getmtime(p), strokes=out)
 
+@app.route("/api/img")
+def api_img():
+    """PNG of a picture annotation (only used when a PDF is opened fresh; the browser keeps the original after that)."""
+    p = safe(request.args.get("path", ""))
+    if not p.lower().endswith(".pdf") or not os.path.isfile(p):
+        abort(404)
+    try:
+        xref = int(request.args.get("xref", "0"))
+    except ValueError:
+        abort(400)
+    doc = fitz.open(p)
+    data = None
+    try:
+        for pg in doc:
+            for an in pg.annots(types=[fitz.PDF_ANNOT_STAMP]) or []:
+                if an.xref != xref:
+                    continue
+                rc = an.rect
+                sc = min(8.0, 1600.0 / max(rc.width, rc.height, 1.0))
+                try:
+                    pix = an.get_pixmap(matrix=fitz.Matrix(sc, sc), alpha=True)
+                except Exception:
+                    pix = an.get_pixmap(matrix=fitz.Matrix(sc, sc))
+                data = pix.tobytes("png")
+                break
+            if data:
+                break
+    finally:
+        doc.close()
+    if not data:
+        abort(404)
+    r = Response(data, mimetype="image/png")
+    r.headers["Cache-Control"] = "no-store"
+    return r
+
+# ---------------------------------------------------------------- write
 FONTMAP = {"helv": ("helv", "hebo", "heit", "hebi"),
            "tiro": ("tiro", "tibo", "tiit", "tibi"),
            "cour": ("cour", "cobo", "coit", "cobi")}
@@ -175,6 +244,38 @@ def add_text(doc, s):
             u.update()
     return xref
 
+def add_image(doc, s):
+    """Add a picture as a Stamp annotation (movable later). Returns its xref,
+    -1 if it had to be merged into the page itself (visible, but not movable), or None on failure."""
+    m = re.match(r"data:image/(png|jpeg|jpg);base64,(.+)$", str(s.get("data", "")), re.S)
+    if not m:
+        return None
+    raw = base64.b64decode(m.group(2))
+    pg = doc[int(s["page"])]
+    r = pg.rect
+    x0, y0 = float(s["x"]) * r.width, float(s["y"]) * r.height
+    rect = fitz.Rect(x0, y0, x0 + float(s["wd"]) * r.width, y0 + float(s["ht"]) * r.height)
+    rect = (rect * pg.derotation_matrix).normalize()
+    a = None
+    try:
+        pix = fitz.Pixmap(raw)
+    except Exception:
+        pix = None
+    attempts = ([lambda: pg.add_stamp_annot(rect, stamp=pix)] if pix is not None else []) + \
+               [lambda: pg.add_stamp_annot(rect, stamp=raw)]
+    for fn in attempts:
+        try:
+            a = fn()
+            if a:
+                break
+        except Exception:
+            a = None
+    if a:
+        a.set_info(subject="pdfink-img")
+        return a.xref
+    pg.insert_image(rect, stream=raw, overlay=True)     # fallback: becomes part of the page
+    return -1
+
 def add_ink(doc, s):
     """Add one pen/highlighter stroke as an Ink annotation. Returns its xref (or None)."""
     if not re.fullmatch(r"#[0-9a-fA-F]{6}", s.get("color", "")) or len(s.get("pts", [])) < 2:
@@ -193,6 +294,13 @@ def add_ink(doc, s):
     a.update()
     return a.xref
 
+def full_save(doc, p, garbage):
+    fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(p))
+    os.close(fd)
+    doc.save(tmp, garbage=garbage, deflate=True)
+    doc.close()
+    os.replace(tmp, p)               # atomic overwrite, same folder, same name
+
 @app.route("/api/save", methods=["POST"])
 def api_save():
     p = safe(request.args.get("path", ""))
@@ -204,25 +312,35 @@ def api_save():
         return jsonify(ok=True, added=0, xrefs=[], failed=0, m=os.path.getmtime(p))
     backup_once(p)
     doc = fitz.open(p)
-    if dels:                          # erase previously saved ink / text (and underline companions)
+    heavy = False                     # deleting a picture needs a full rewrite so its data is dropped
+    if dels:                          # erase previously saved items (and underline companions)
         for pg in doc:
             for an in [a for a in (pg.annots() or []) if a.xref in dels or
                        ((a.info.get("subject") or "").startswith("pdfink-ul:") and
                         int((a.info["subject"].split(":") + ["-1"])[1] or -1) in dels)]:
+                if an.type[0] == fitz.PDF_ANNOT_STAMP:
+                    heavy = True
                 pg.delete_annot(an)
     xrefs = []                        # one entry per incoming item, same order (None = not added)
     for s in strokes:
         try:
-            x = add_text(doc, s) if s.get("kind") == "text" else add_ink(doc, s)
+            k = s.get("kind")
+            x = add_text(doc, s) if k == "text" else add_image(doc, s) if k == "img" else add_ink(doc, s)
         except Exception:
             x = None
         xrefs.append(x)
     added = sum(1 for x in xrefs if x is not None)
-    fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(p))
-    os.close(fd)
-    doc.save(tmp, garbage=0, deflate=True)   # garbage=0 keeps annotation ids stable
-    doc.close()
-    os.replace(tmp, p)               # atomic overwrite, same folder, same name
+    done = False
+    if not heavy:                     # normal case: just append the changes (much cheaper than rewriting the file)
+        try:
+            if doc.can_save_incrementally():
+                doc.saveIncr()
+                doc.close()
+                done = True
+        except Exception:
+            done = False
+    if not done:
+        full_save(doc, p, 1 if heavy else 0)
     return jsonify(ok=True, added=added, failed=len(xrefs) - added, xrefs=xrefs, m=os.path.getmtime(p))
 
 @app.route("/api/mtime")
