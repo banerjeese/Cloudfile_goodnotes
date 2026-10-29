@@ -294,6 +294,13 @@ def add_ink(doc, s):
     a.update()
     return a.xref
 
+def full_save(doc, p, garbage):
+    fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(p))
+    os.close(fd)
+    doc.save(tmp, garbage=garbage, deflate=True)
+    doc.close()
+    os.replace(tmp, p)               # atomic overwrite, same folder, same name
+
 @app.route("/api/save", methods=["POST"])
 def api_save():
     p = safe(request.args.get("path", ""))
@@ -305,11 +312,14 @@ def api_save():
         return jsonify(ok=True, added=0, xrefs=[], failed=0, m=os.path.getmtime(p))
     backup_once(p)
     doc = fitz.open(p)
+    heavy = False                     # deleting a picture needs a full rewrite so its data is dropped
     if dels:                          # erase previously saved items (and underline companions)
         for pg in doc:
             for an in [a for a in (pg.annots() or []) if a.xref in dels or
                        ((a.info.get("subject") or "").startswith("pdfink-ul:") and
                         int((a.info["subject"].split(":") + ["-1"])[1] or -1) in dels)]:
+                if an.type[0] == fitz.PDF_ANNOT_STAMP:
+                    heavy = True
                 pg.delete_annot(an)
     xrefs = []                        # one entry per incoming item, same order (None = not added)
     for s in strokes:
@@ -320,11 +330,17 @@ def api_save():
             x = None
         xrefs.append(x)
     added = sum(1 for x in xrefs if x is not None)
-    fd, tmp = tempfile.mkstemp(suffix=".pdf", dir=os.path.dirname(p))
-    os.close(fd)
-    doc.save(tmp, garbage=1, deflate=True)   # garbage=1 drops deleted pictures' data but keeps annotation ids stable
-    doc.close()
-    os.replace(tmp, p)               # atomic overwrite, same folder, same name
+    done = False
+    if not heavy:                     # normal case: just append the changes (much cheaper than rewriting the file)
+        try:
+            if doc.can_save_incrementally():
+                doc.saveIncr()
+                doc.close()
+                done = True
+        except Exception:
+            done = False
+    if not done:
+        full_save(doc, p, 1 if heavy else 0)
     return jsonify(ok=True, added=added, failed=len(xrefs) - added, xrefs=xrefs, m=os.path.getmtime(p))
 
 @app.route("/api/mtime")
